@@ -25,29 +25,31 @@ nur das Ergebnis, sondern auch der Weg dorthin, inklusive Umwegen und Korrekture
 1. **Statische Seite** — Daten rein, HTML raus: eine App ganz ohne Laufzeit-Logik und ohne Server.
 2. **Interaktive Seite** — erste Interaktivität im Browser; Zustand existiert nur im Speicher des
    offenen Tabs.
-3. **Persistenz mit localStorage** — Zustand übersteht erstmals einen Reload, bleibt aber an ein
+3. **Automatisierte Tests** — Domänenlogik und weitere Komponenten automatisiert testen und
+   Testabdeckung messen; setzt eine Refaktorisierung der bis dahin einzelnen HTML-Datei voraus.
+4. **Persistenz mit localStorage** — Zustand übersteht erstmals einen Reload, bleibt aber an ein
    Gerät gebunden.
-4. **Zustand laden/speichern (JSON)** — das Datenmodell wird als Append-only Event-Log explizit
+5. **Zustand laden/speichern (JSON)** — das Datenmodell wird als Append-only Event-Log explizit
    fassbar, exportier- und importierbar als Datei.
-5. **Mehrere Seiten/Views** — erste Strukturentscheidung jenseits einer einzelnen Seite
+6. **Mehrere Seiten/Views** — erste Strukturentscheidung jenseits einer einzelnen Seite
    (clientseitiges Routing).
-6. **Deno-Server mit eigener API** — erste Trennung von Frontend und Backend; dieselbe
+7. **Deno-Server mit eigener API** — erste Trennung von Frontend und Backend; dieselbe
    Funktionalität wird zusätzlich über eine API nutzbar.
-7. **Echte Datenbank: SQLite** — erste "richtige" Datenbank, Grundlage für parallele Zugriffe
+8. **Echte Datenbank: SQLite** — erste "richtige" Datenbank, Grundlage für parallele Zugriffe
    mehrerer Tabs/Skripte.
-8. **Externer HTTP-Service** — Umgang mit externen Abhängigkeiten, Fehlerbehandlung und
+9. **Externer HTTP-Service** — Umgang mit externen Abhängigkeiten, Fehlerbehandlung und
    Rate Limits.
-9. **Git lokal** — Versionskontrolle als stille Vorbereitung, die sich erst später (Stufe 13)
-   sichtbar auszahlt.
-10. **Postgres statt SQLite** — Umgang mit Connection Strings und Secrets für eine
+10. **Git lokal** — Versionskontrolle als stille Vorbereitung, die sich erst später (Stufe 14)
+    sichtbar auszahlt.
+11. **Postgres statt SQLite** — Umgang mit Connection Strings und Secrets für eine
     Cloud-Datenbank; der Server selbst läuft noch lokal.
-11. **Deployment ins Web** — erster echter Web-Deploy, Umgang mit einer Deploy-CLI und
+12. **Deployment ins Web** — erster echter Web-Deploy, Umgang mit einer Deploy-CLI und
     Env-Variablen im Cloud-Kontext.
-12. **Auth mit OTP + Multi-User** — erster Auth-Layer; das Datenmodell bleibt unverändert, nur
+13. **Auth mit OTP + Multi-User** — erster Auth-Layer; das Datenmodell bleibt unverändert, nur
     wer reinkommt ändert sich.
-13. **GitHub-Repo + automatisches Deployment** — Deployment wird reproduzierbar, Team-Arbeit am
+14. **GitHub-Repo + automatisches Deployment** — Deployment wird reproduzierbar, Team-Arbeit am
     Code wird möglich.
-14. **Umgebungen trennen (lokal SQLite / Production Postgres)** — eine Codebasis mit zwei
+15. **Umgebungen trennen (lokal SQLite / Production Postgres)** — eine Codebasis mit zwei
     Backends je nach Umgebung, über eine DB-Abstraktionsschicht.
-15. **Multi-Tenant** — aus einem geteilten Datenpool wird echte Daten-Isolation; neues
+16. **Multi-Tenant** — aus einem geteilten Datenpool wird echte Daten-Isolation; neues
     Sicherheitsthema, z. B. eine vergessene `tenant_id`-Klausel als Datenleck zwischen Nutzern.

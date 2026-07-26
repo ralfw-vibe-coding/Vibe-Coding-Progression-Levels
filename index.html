@@ -125,9 +125,25 @@
     font-weight: 500;
     margin-bottom: 8px;
   }
+  .card-value-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
   .card-value {
     font-size: 18px;
     font-weight: 600;
+  }
+  .card-value-detail {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-faint);
+  }
+  .card-sub-row {
+    font-size: 12px;
+    color: var(--ink-faint);
     margin-bottom: 8px;
   }
   .bar-track {
@@ -157,13 +173,137 @@
     color: var(--ink-faint);
   }
   .share svg { flex-shrink: 0; }
+
+  .page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0.5px solid var(--border);
+    border-radius: 999px;
+    background: #FFFFFF;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .add-btn:hover { background: var(--track); color: var(--ink); }
+  .card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-add-wrap {
+    position: relative;
+  }
+  .card-add-wrap .add-btn { width: 18px; height: 18px; }
+  .add-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 24px;
+    z-index: 10;
+    background: #FFFFFF;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(24,26,42,0.12);
+    min-width: 160px;
+    overflow: hidden;
+  }
+  .card-add-wrap.open .add-menu { display: block; }
+  .add-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .add-menu button:hover { background: var(--track); }
+
+  dialog {
+    border: none;
+    border-radius: 16px;
+    padding: 24px;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    box-shadow: 0 8px 32px rgba(24,26,42,0.18);
+  }
+  dialog::backdrop { background: rgba(24,26,42,0.35); }
+  dialog h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 4px;
+  }
+  .field input, .field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .field-info {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 12px;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-secondary {
+    border: 0.5px solid var(--border);
+    background: #FFFFFF;
+    color: var(--ink);
+  }
+  .btn-secondary:hover { background: var(--track); }
+  .btn-primary {
+    border: none;
+    background: var(--ink);
+    color: #FFFFFF;
+  }
+  .btn-primary:hover { opacity: 0.9; }
 </style>
 </head>
 <body>
 <main>
 
   <div class="page-header">
-    <h1>Mein Depot</h1>
+    <div class="page-header-left">
+      <h1>Mein Depot</h1>
+      <button type="button" class="add-btn" id="btn-neue-position" aria-label="Neue Position erfassen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </button>
+    </div>
     <div class="meta">Peter Salz · 26.07.2026</div>
   </div>
 
@@ -190,35 +330,99 @@
 
 </main>
 
+<dialog id="dialog-neue-position">
+  <form id="form-neue-position">
+    <h2>Neue Position erfassen</h2>
+    <div class="field"><label for="np-wkn">WKN</label><input id="np-wkn" name="wkn" type="text" required></div>
+    <div class="field"><label for="np-name">Name</label><input id="np-name" name="name" type="text" required></div>
+    <div class="field">
+      <label for="np-typ">Typ</label>
+      <select id="np-typ" name="typ">
+        <option>Zertifikat</option>
+        <option>Fonds</option>
+        <option>ETF</option>
+        <option>Aktie</option>
+      </select>
+    </div>
+    <div class="field"><label for="np-stueck">Stück</label><input id="np-stueck" name="stueck" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-kaufkurs">Kaufkurs (€)</label><input id="np-kaufkurs" name="kaufkurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-kurs">Aktueller Kurs (€)</label><input id="np-kurs" name="kurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-datum">Datum</label><input id="np-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-kauf">
+  <form id="form-kauf">
+    <h2>Kauf erfassen</h2>
+    <div class="field-info" id="kauf-position-info"></div>
+    <div class="field"><label for="k-stueck">Stück</label><input id="k-stueck" name="stueck" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="k-kaufkurs">Kaufkurs (€)</label><input id="k-kaufkurs" name="kaufkurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="k-datum">Datum</label><input id="k-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-kursupdate">
+  <form id="form-kursupdate">
+    <h2>Kursupdate erfassen</h2>
+    <div class="field-info" id="kursupdate-position-info"></div>
+    <div class="field"><label for="ku-kurs">Kurs (€)</label><input id="ku-kurs" name="kurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="ku-datum">Datum</label><input id="ku-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
 <script id="event-store">
   // Append-only Event-Store: der Ausgangszustand des Depots, als Ereignisse statt als
   // fertig berechnete Werte. "kauf" legt eine Position mit Erstbestand an, "kursupdate"
   // trägt den zuletzt bekannten Kurs nach. Alle angezeigten Zahlen (Wert, Veränderung,
   // Portfolio-Anteil, Balkenskala) werden daraus berechnet, nicht hier hinterlegt.
-  const events = [
-    { type: "kauf", wkn: "LS9KF5", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 373.57 },
-    { type: "kauf", wkn: "EWG2LD", name: "Boerse Stuttg. Euwax-Gold", typ: "Zertifikat", stueck: 100, kaufkurs: 53.57 },
-    { type: "kauf", wkn: "DWS0R4", name: "Arero-Der Weltfonds Inh.", typ: "Fonds", stueck: 10, kaufkurs: 211.26 },
-    { type: "kauf", wkn: "LS9GLD", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 627.29 },
-    { type: "kauf", wkn: "A2QBZ1", name: "ISVP.-IS.M.EES EOA", typ: "ETF", stueck: 68.476, kaufkurs: 11.1479 },
-    { type: "kauf", wkn: "LS9CHS", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 315.97 },
-    { type: "kauf", wkn: "LS9BGR", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 327.02 },
-    { type: "kauf", wkn: "LS9ETB", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 428.30 },
-    { type: "kauf", wkn: "722713", name: "Strategy A New DL-001", typ: "Aktie", stueck: 2, kaufkurs: 330.70 },
-    { type: "kauf", wkn: "A2LQVD", name: "Ameria AG VNA ST ON PR.P.", typ: "Aktie", stueck: 1, kaufkurs: null },
-    { type: "kauf", wkn: "A2NBP6", name: "Ameria AG VNA VZO ON PR.P", typ: "Aktie", stueck: 1, kaufkurs: null },
+  //
+  // Jedes Ereignis: { seq, eventType, timestamp, payload }.
+  // - timestamp ist rein technisch (wann dieser Event-Store geschrieben wurde) und hat
+  //   keine fachliche Bedeutung — hier einheitlich der Autorentag dieser Stufe.
+  // - payload.datum ist das fachliche Datum, dessen Bedeutung vom eventType abhängt:
+  //   bei "kauf" das Kaufdatum, bei "kursupdate" das Datum des Kurses selbst.
+  // - Für "kauf" ist das Kaufdatum in der Quelle nicht überliefert -> angenommen: 1.7.2026.
+  //   Für "kursupdate" ist das Datum in den Quelldaten vorhanden und wird übernommen; nur
+  //   bei den beiden wertlosen Ameria-Positionen fehlt auch das, ebenfalls 1.7.2026 angenommen.
+  const TECHNISCHES_TIMESTAMP = "2026-07-26T00:00:00";
+  const ANGENOMMENES_DATUM = "2026-07-01";
 
-    { type: "kursupdate", wkn: "LS9KF5", kurs: 937.49, datum: "2026-07-24T11:12:25" },
-    { type: "kursupdate", wkn: "EWG2LD", kurs: 117.36, datum: "2026-07-24T21:54:29" },
-    { type: "kursupdate", wkn: "DWS0R4", kurs: 347.00, datum: "2026-07-24T22:47:48" },
-    { type: "kursupdate", wkn: "LS9GLD", kurs: 916.38, datum: "2026-07-24T08:06:11" },
-    { type: "kursupdate", wkn: "A2QBZ1", kurs: 15.878, datum: "2026-07-24T17:35:56" },
-    { type: "kursupdate", wkn: "LS9CHS", kurs: 356.86, datum: "2026-07-24T08:06:21" },
-    { type: "kursupdate", wkn: "LS9BGR", kurs: 331.62, datum: "2026-07-24T13:16:55" },
-    { type: "kursupdate", wkn: "LS9ETB", kurs: 415.81, datum: "2026-07-24T08:05:13" },
-    { type: "kursupdate", wkn: "722713", kurs: 80.64, datum: "2026-07-24T22:02:45" },
-    { type: "kursupdate", wkn: "A2LQVD", kurs: 0, datum: null },
-    { type: "kursupdate", wkn: "A2NBP6", kurs: 0, datum: null },
+  const events = [
+    { seq: 1, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9KF5", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 373.57, datum: ANGENOMMENES_DATUM } },
+    { seq: 2, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "EWG2LD", name: "Boerse Stuttg. Euwax-Gold", typ: "Zertifikat", stueck: 100, kaufkurs: 53.57, datum: ANGENOMMENES_DATUM } },
+    { seq: 3, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "DWS0R4", name: "Arero-Der Weltfonds Inh.", typ: "Fonds", stueck: 10, kaufkurs: 211.26, datum: ANGENOMMENES_DATUM } },
+    { seq: 4, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9GLD", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 627.29, datum: ANGENOMMENES_DATUM } },
+    { seq: 5, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2QBZ1", name: "ISVP.-IS.M.EES EOA", typ: "ETF", stueck: 68.476, kaufkurs: 11.1479, datum: ANGENOMMENES_DATUM } },
+    { seq: 6, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9CHS", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 315.97, datum: ANGENOMMENES_DATUM } },
+    { seq: 7, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9BGR", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 327.02, datum: ANGENOMMENES_DATUM } },
+    { seq: 8, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9ETB", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 428.30, datum: ANGENOMMENES_DATUM } },
+    { seq: 9, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "722713", name: "Strategy A New DL-001", typ: "Aktie", stueck: 2, kaufkurs: 330.70, datum: ANGENOMMENES_DATUM } },
+    { seq: 10, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2LQVD", name: "Ameria AG VNA ST ON PR.P.", typ: "Aktie", stueck: 1, kaufkurs: null, datum: ANGENOMMENES_DATUM } },
+    { seq: 11, eventType: "kauf", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2NBP6", name: "Ameria AG VNA VZO ON PR.P", typ: "Aktie", stueck: 1, kaufkurs: null, datum: ANGENOMMENES_DATUM } },
+
+    { seq: 12, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9KF5", kurs: 937.49, datum: "2026-07-24T11:12:25" } },
+    { seq: 13, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "EWG2LD", kurs: 117.36, datum: "2026-07-24T21:54:29" } },
+    { seq: 14, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "DWS0R4", kurs: 347.00, datum: "2026-07-24T22:47:48" } },
+    { seq: 15, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9GLD", kurs: 916.38, datum: "2026-07-24T08:06:11" } },
+    { seq: 16, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2QBZ1", kurs: 15.878, datum: "2026-07-24T17:35:56" } },
+    { seq: 17, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9CHS", kurs: 356.86, datum: "2026-07-24T08:06:21" } },
+    { seq: 18, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9BGR", kurs: 331.62, datum: "2026-07-24T13:16:55" } },
+    { seq: 19, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "LS9ETB", kurs: 415.81, datum: "2026-07-24T08:05:13" } },
+    { seq: 20, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "722713", kurs: 80.64, datum: "2026-07-24T22:02:45" } },
+    { seq: 21, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2LQVD", kurs: 0, datum: ANGENOMMENES_DATUM } },
+    { seq: 22, eventType: "kursupdate", timestamp: TECHNISCHES_TIMESTAMP, payload: { wkn: "A2NBP6", kurs: 0, datum: ANGENOMMENES_DATUM } },
   ];
 </script>
 
@@ -226,24 +430,41 @@
   const TYP_KLASSE = { "Zertifikat": "zert", "Fonds": "fonds", "ETF": "etf", "Aktie": "aktie" };
 
   function positionenAusEvents(events) {
+    // Mehrere "kauf"-Events zur selben WKN sind Nachkäufe und werden addiert:
+    // Stück summiert sich, Kaufwert ist die Summe der einzelnen Stück×Kaufkurs-Anteile.
+    // Name/Typ kommen vom ersten "kauf"-Event dieser WKN (der Position ihre Identität gibt).
     const kaeufe = new Map();
     const kurse = new Map();
     for (const e of events) {
-      if (e.type === "kauf") kaeufe.set(e.wkn, e);
-      if (e.type === "kursupdate") {
-        const bisher = kurse.get(e.wkn);
-        if (!bisher || (e.datum && (!bisher.datum || e.datum > bisher.datum))) kurse.set(e.wkn, e);
+      if (e.eventType === "kauf") {
+        const p = e.payload;
+        let agg = kaeufe.get(p.wkn);
+        if (!agg) {
+          agg = { name: p.name, typ: p.typ, stueck: 0, kaufwertSumme: 0, kaufwertBekannt: false };
+          kaeufe.set(p.wkn, agg);
+        }
+        agg.stueck += p.stueck;
+        if (p.kaufkurs != null) {
+          agg.kaufwertSumme += p.stueck * p.kaufkurs;
+          agg.kaufwertBekannt = true;
+        }
+      }
+      if (e.eventType === "kursupdate") {
+        const bisher = kurse.get(e.payload.wkn);
+        if (!bisher || e.payload.datum > bisher.datum) kurse.set(e.payload.wkn, e.payload);
       }
     }
     const positionen = [];
-    for (const [wkn, kauf] of kaeufe) {
+    for (const [wkn, agg] of kaeufe) {
       const kursupdate = kurse.get(wkn);
       const kurs = kursupdate ? kursupdate.kurs : null;
-      const wert = kurs != null ? kauf.stueck * kurs : 0;
-      const kaufwert = kauf.kaufkurs != null ? kauf.stueck * kauf.kaufkurs : null;
+      const kursDatum = kursupdate ? kursupdate.datum : null;
+      const wert = kurs != null ? agg.stueck * kurs : 0;
+      const kaufwert = agg.kaufwertBekannt ? agg.kaufwertSumme : null;
+      const kaufkurs = kaufwert != null ? kaufwert / agg.stueck : null; // durchschnittlicher Kaufkurs über alle Käufe
       const diffAbs = kaufwert != null ? wert - kaufwert : null;
       const diffPct = kaufwert ? (diffAbs / kaufwert) * 100 : null;
-      positionen.push({ wkn, name: kauf.name, typ: kauf.typ, stueck: kauf.stueck, wert, kaufwert, diffAbs, diffPct });
+      positionen.push({ wkn, name: agg.name, typ: agg.typ, stueck: agg.stueck, wert, kurs, kursDatum, kaufwert, kaufkurs, diffAbs, diffPct });
     }
     return positionen;
   }
@@ -257,10 +478,18 @@
   function fmtPct(n) {
     return (n >= 0 ? "+" : "") + n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
   }
+  // Kurse (Einzelpreise) behalten ihre Quellgenauigkeit (z. B. 11,1479 € bei Bruchstück-ETFs)
+  // statt auf 2 Nachkommastellen gerundet zu werden wie die großen Summen.
+  function fmtKurs(n) {
+    return n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + " €";
+  }
   function fmtStueck(n) {
     return Number.isInteger(n) ? n.toLocaleString("de-DE") : n.toLocaleString("de-DE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   }
-
+  function fmtDatum(datum) {
+    const [jahr, monat, tag] = datum.split("T")[0].split("-");
+    return `${tag}.${monat}.${jahr}`;
+  }
   // Logarithmische Balkenskala: 0 % -> 0 %, 100 % Kursgewinn -> ~50 % Länge,
   // 500 % -> ~75 % Länge. Keine harte Obergrenze, nur zunehmend flacher.
   function balkenAnteil(pct) {
@@ -313,10 +542,25 @@
         <div class="card-body">
           <div class="card-top">
             <span class="badge badge-${klasse}">${p.typ}</span>
-            <a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=${p.wkn}" target="_blank" rel="noopener">${p.wkn}</a>
+            <div class="card-top-right">
+              <a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=${p.wkn}" target="_blank" rel="noopener">${p.wkn}</a>
+              <div class="card-add-wrap">
+                <button type="button" class="add-btn" data-wkn="${p.wkn}" data-name="${p.name}" aria-label="Erfassen für ${p.wkn}">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                </button>
+                <div class="add-menu">
+                  <button type="button" data-action="kauf" data-wkn="${p.wkn}" data-name="${p.name}">Kauf erfassen</button>
+                  <button type="button" data-action="kursupdate" data-wkn="${p.wkn}" data-name="${p.name}">Kursupdate erfassen</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="card-name">${p.name}</div>
-          <div class="card-value">${fmtEUR(p.wert)}</div>
+          <div class="card-value-row">
+            <span class="card-value">${fmtEUR(p.wert)}</span>
+            ${p.kurs != null ? `<span class="card-value-detail">(${fmtKurs(p.kurs)})${p.kursDatum ? " " + fmtDatum(p.kursDatum) : ""}</span>` : ""}
+          </div>
+          <div class="card-sub-row">${p.kaufwert != null ? `Kaufwert ${fmtEUR(p.kaufwert)} (${fmtKurs(p.kaufkurs)}) · ` : ""}${fmtStueck(p.stueck)} Stück</div>
           ${barHtml}
           <div class="card-foot">
             ${pctHtml}
@@ -328,6 +572,117 @@
   }
 
   render();
+
+  // --- Erfassung neuer Events -------------------------------------------------
+  const HEUTE = "2026-07-26";
+
+  function naechsteSeq() {
+    return Math.max(...events.map((e) => e.seq)) + 1;
+  }
+  function jetzt() {
+    return new Date().toISOString();
+  }
+
+  // Globale Erfassung: neue Position = ein "kauf"- und ein "kursupdate"-Event zusammen,
+  // sonst wäre die Position sofort "wertlos".
+  const dialogNeuePosition = document.getElementById("dialog-neue-position");
+  document.getElementById("btn-neue-position").addEventListener("click", () => {
+    const form = document.getElementById("form-neue-position");
+    form.reset();
+    form.datum.value = HEUTE;
+    dialogNeuePosition.showModal();
+  });
+  // Aktueller Kurs ist beim Neuanlegen meist noch der Kaufkurs -> als Vorschlag übernehmen,
+  // sobald das Kaufkurs-Feld verlassen wird, aber nur falls der Nutzer dort noch nichts
+  // eingetragen hat.
+  document.getElementById("np-kaufkurs").addEventListener("blur", (e) => {
+    const kursFeld = document.getElementById("np-kurs");
+    if (e.target.value !== "" && kursFeld.value === "") kursFeld.value = e.target.value;
+  });
+  document.getElementById("form-neue-position").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const timestamp = jetzt();
+    const wkn = form.wkn.value.trim();
+    const datum = form.datum.value;
+    events.push({ seq: naechsteSeq(), eventType: "kauf", timestamp, payload: {
+      wkn, name: form.name.value.trim(), typ: form.typ.value,
+      stueck: parseFloat(form.stueck.value), kaufkurs: parseFloat(form.kaufkurs.value), datum,
+    }});
+    events.push({ seq: naechsteSeq(), eventType: "kursupdate", timestamp, payload: {
+      wkn, kurs: parseFloat(form.kurs.value), datum,
+    }});
+    dialogNeuePosition.close();
+    render();
+  });
+
+  // Lokale Erfassung: Nachkauf oder Kursupdate zu einer bestehenden Position.
+  let aktiveWkn = null;
+  const dialogKauf = document.getElementById("dialog-kauf");
+  const dialogKursupdate = document.getElementById("dialog-kursupdate");
+
+  function oeffneKaufDialog(wkn, name) {
+    aktiveWkn = wkn;
+    const form = document.getElementById("form-kauf");
+    form.reset();
+    form.datum.value = HEUTE;
+    document.getElementById("kauf-position-info").textContent = `${name} (${wkn})`;
+    dialogKauf.showModal();
+  }
+  function oeffneKursupdateDialog(wkn, name) {
+    aktiveWkn = wkn;
+    const form = document.getElementById("form-kursupdate");
+    form.reset();
+    form.datum.value = HEUTE;
+    document.getElementById("kursupdate-position-info").textContent = `${name} (${wkn})`;
+    dialogKursupdate.showModal();
+  }
+
+  document.getElementById("form-kauf").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    events.push({ seq: naechsteSeq(), eventType: "kauf", timestamp: jetzt(), payload: {
+      wkn: aktiveWkn, stueck: parseFloat(form.stueck.value), kaufkurs: parseFloat(form.kaufkurs.value), datum: form.datum.value,
+    }});
+    dialogKauf.close();
+    render();
+  });
+  document.getElementById("form-kursupdate").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    events.push({ seq: naechsteSeq(), eventType: "kursupdate", timestamp: jetzt(), payload: {
+      wkn: aktiveWkn, kurs: parseFloat(form.kurs.value), datum: form.datum.value,
+    }});
+    dialogKursupdate.close();
+    render();
+  });
+
+  document.querySelectorAll("[data-close]").forEach((btn) => {
+    btn.addEventListener("click", () => btn.closest("dialog").close());
+  });
+
+  // Menü am lokalen "+" per Delegation, da Karten bei jedem render() neu aufgebaut werden.
+  document.getElementById("positions").addEventListener("click", (e) => {
+    const addBtn = e.target.closest(".add-btn");
+    if (addBtn) {
+      e.stopPropagation();
+      const wrap = addBtn.closest(".card-add-wrap");
+      const warOffen = wrap.classList.contains("open");
+      document.querySelectorAll(".card-add-wrap.open").forEach((w) => w.classList.remove("open"));
+      if (!warOffen) wrap.classList.add("open");
+      return;
+    }
+    const menuItem = e.target.closest(".add-menu button");
+    if (menuItem) {
+      document.querySelectorAll(".card-add-wrap.open").forEach((w) => w.classList.remove("open"));
+      const { wkn, name, action } = menuItem.dataset;
+      if (action === "kauf") oeffneKaufDialog(wkn, name);
+      else oeffneKursupdateDialog(wkn, name);
+    }
+  });
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".card-add-wrap.open").forEach((w) => w.classList.remove("open"));
+  });
 </script>
 </body>
 </html>
