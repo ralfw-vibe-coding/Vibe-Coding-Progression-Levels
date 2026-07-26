@@ -1,0 +1,27 @@
+
+"Stück / Nominale";"Bezeichnung";"Notizen";"WKN";"Typ";"Währung";"Wert in EUR";"Differenz seit Kauf absolut";"Differenz seit Kauf relativ";"Datum";"Zeit";"Börse";"Kaufwert in EUR";"Wertentwicklung 1 Jahr";"Wertentwicklung 3 Jahre";"Kaufkurs in EUR";"KGVe";"DIVe";"Aktueller Kurs";"Differenz zum Vortag absolut";"Differenz zum Vortag relativ";
+"1";"LANG+SCHWARZ O.E. INDEX";;"LS9KF5";"Zertif";"EUR";"937,49";"+563,92";"+150,95%";"24.07.2026";"11:12:25";"Stuttgart";"373,57";"+111,07%";"+226,15%";"373,57";;"--";"937,49";"-23,62";"-2,46%";
+"100";"BOERSE STUTTG. EUWAX-GOLD";;"EWG2LD";"Zertif";"EUR";"11.736,00";"+6.379,00";"+119,08%";"24.07.2026";"21:54:29";"Stuttgart";"5.357,00";"+24,59%";"+102,68%";"53,57";;"--";"117,36";"0,17";"+0,15%";
+"10";"ARERO-DER WELTFONDS INH.";;"DWS0R4";"Fonds";"EUR";"3.470,00";"+1.357,40";"+64,25%";"24.07.2026";"22:47:48";"gettex";"2.112,60";"+19,83%";"--";"211,26";;"--";"347,00";"0,00";"0,00%";
+"1";"LANG+SCHWARZ O.E. INDEX";;"LS9GLD";"Zertif";"EUR";"916,38";"+289,09";"+46,09%";"24.07.2026";"08:06:11";"Stuttgart";"627,29";"+31,48%";"+73,30%";"627,29";;"--";"916,38";"-12,18";"-1,31%";
+"68,476";"ISVP.-IS.M.EES EOA";;"A2QBZ1";"ETF";"EUR";"1.087,26";"+323,90";"+42,43%";"24.07.2026";"17:35:56";"XETRA";"763,36";"+50,82%";"+59,72%";"11,1479";;"--";"15,878";"-0,244";"-1,51%";
+"1";"LANG+SCHWARZ O.E. INDEX";;"LS9CHS";"Zertif";"EUR";"356,86";"+40,89";"+12,94%";"24.07.2026";"08:06:21";"Stuttgart";"315,97";"-1,30%";"+33,35%";"315,97";;"--";"356,86";"-2,97";"-0,83%";
+"1";"LANG+SCHWARZ O.E. INDEX";;"LS9BGR";"Zertif";"EUR";"331,62";"+4,60";"+1,41%";"24.07.2026";"13:16:55";"Stuttgart";"327,02";"+1,43%";"+22,41%";"327,02";;"--";"331,62";"0,49";"+0,15%";
+"1";"AMERIA AG VNA ST ON PR.P.";;"A2LQVD";"Aktie";"   ";"0,00";"--";"0,00%";"--";"--";"--";"--";"--";"--";"--";;"--";"--";"--";"0,00%";
+"1";"AMERIA AG VNA VZO ON PR.P";;"A2NBP6";"Aktie";"   ";"0,00";"--";"0,00%";"--";"--";"--";"--";"--";"--";"--";;"--";"--";"--";"0,00%";
+"1";"LANG+SCHWARZ O.E. INDEX";;"LS9ETB";"Zertif";"EUR";"415,81";"-12,49";"-2,92%";"24.07.2026";"08:05:13";"Stuttgart";"428,30";"+0,67%";"+10,74%";"428,30";;"--";"415,81";"-1,96";"-0,47%";
+"2";"STRATEGY     A NEW DL-001";;"722713";"Aktie";"EUR";"161,28";"-500,12";"-75,62%";"24.07.2026";"22:02:45";"Tradegate";"661,40";"-77,15%";"+106,98%";"330,70";;"--";"80,64";"-1,88";"-2,28%";
+
+"Depotwert";"EUR";"19.412,70";
+"Kaufwert";"EUR";"10.966,51";
+"Veränderung";"EUR";"8.446,19";
+" ";"%";"+77,02%";
+"Beleihungswert";"EUR";"3.267,36";
+
+"Enthält aktuell ausgeführte Orders: Nein";
+
+
+"DEPOTÜBERSICHT";
+"Inhaber: ";"Peter Salz";
+"Datum: ";"26.07.2026";"14:14";
+"Kundennummer: ";"123 4567890";

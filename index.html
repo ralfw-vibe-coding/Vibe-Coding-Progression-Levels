@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mein Depot</title>
+<style>
+  :root {
+    --ink: #181A2A;
+    --ink-muted: #6B6D80;
+    --ink-faint: #8B8DA0;
+    --border: #E7E7EF;
+    --track: #F3F3F8;
+    --green: #0F9D58;
+    --red: #DC2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background: #F4F4F7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(24,26,42,0.06);
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .page-header .meta {
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .hero-card {
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .hero-card.wert { background: #EEF0FF; }
+  .hero-card.veraend { background: #E7F8EF; }
+  .hero-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .hero-card.wert .hero-label { color: #4F46E5; }
+  .hero-card.veraend .hero-label { color: var(--green); }
+  .hero-value {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .hero-card.veraend .hero-value { color: var(--green); }
+  .hero-sub {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+    opacity: 0.75;
+  }
+  .hero-card.wert .hero-sub { color: #6266C4; }
+  .hero-card.veraend .hero-sub { color: var(--green); }
+  .positions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card.dimmed { opacity: 0.5; }
+  .card-strip { height: 4px; }
+  .strip-zert { background: #D97706; }
+  .strip-fonds { background: #7C3AED; }
+  .strip-etf { background: #2563EB; }
+  .strip-aktie { background: #DB2777; }
+  .card-body { padding: 12px; }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .badge-zert { background: #FDF1DC; color: #8A5A0A; }
+  .badge-fonds { background: #F1E9FD; color: #6226C4; }
+  .badge-etf { background: #E5EEFF; color: #1D4FBE; }
+  .badge-aktie { background: #FCE7F3; color: #A61E5E; }
+  .wkn {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--ink-faint);
+    text-decoration: none;
+  }
+  .wkn:hover { text-decoration: underline; }
+  .card-name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .bar-track {
+    height: 9px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .bar-track.neg { justify-content: flex-end; }
+  .bar {
+    background: var(--green);
+  }
+  .bar.neg { background: var(--red); }
+  .card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pct { font-size: 12px; font-weight: 500; color: var(--green); }
+  .pct.neg { color: var(--red); }
+  .pct.zero { color: var(--ink-faint); }
+  .share {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .share svg { flex-shrink: 0; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="page-header">
+    <h1>Mein Depot</h1>
+    <div class="meta">Peter Salz · 26.07.2026</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-card wert">
+      <div class="hero-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        <span>Depotwert</span>
+      </div>
+      <div class="hero-value">19.412,70&nbsp;€</div>
+      <div class="hero-sub">Kaufwert 10.966,51&nbsp;€</div>
+    </div>
+    <div class="hero-card veraend">
+      <div class="hero-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        <span>Veränderung</span>
+      </div>
+      <div class="hero-value">+77,02%</div>
+      <div class="hero-sub">+8.446,19&nbsp;€</div>
+    </div>
+  </div>
+
+  <div class="positions">
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=LS9KF5" target="_blank" rel="noopener">LS9KF5</a></div>
+        <div class="card-name">Lang+Schwarz O.E. Index</div>
+        <div class="card-value">937,49&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:6.4px; width:56.5%; border-radius:3.2px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+150,95%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>4,8%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=EWG2LD" target="_blank" rel="noopener">EWG2LD</a></div>
+        <div class="card-name">Boerse Stuttg. Euwax-Gold</div>
+        <div class="card-value">11.736,00&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:6.2px; width:52.7%; border-radius:3.1px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+119,08%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>60,5%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-fonds"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-fonds">Fonds</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=DWS0R4" target="_blank" rel="noopener">DWS0R4</a></div>
+        <div class="card-name">Arero-Der Weltfonds Inh.</div>
+        <div class="card-value">3.470,00&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:5.6px; width:43.2%; border-radius:2.8px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+64,25%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>17,9%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=LS9GLD" target="_blank" rel="noopener">LS9GLD</a></div>
+        <div class="card-name">Lang+Schwarz O.E. Index</div>
+        <div class="card-value">916,38&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:5.3px; width:38.2%; border-radius:2.7px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+46,09%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>4,7%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-etf"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-etf">ETF</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=A2QBZ1" target="_blank" rel="noopener">A2QBZ1</a></div>
+        <div class="card-name">ISVP.-IS.M.EES EOA</div>
+        <div class="card-value">1.087,26&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:5.2px; width:36.9%; border-radius:2.6px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+42,43%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>5,6%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=LS9CHS" target="_blank" rel="noopener">LS9CHS</a></div>
+        <div class="card-name">Lang+Schwarz O.E. Index</div>
+        <div class="card-value">356,86&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:4.3px; width:21.0%; border-radius:2.2px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+12,94%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>1,8%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=LS9BGR" target="_blank" rel="noopener">LS9BGR</a></div>
+        <div class="card-name">Lang+Schwarz O.E. Index</div>
+        <div class="card-value">331,62&nbsp;€</div>
+        <div class="bar-track"><div class="bar" style="height:3.2px; width:4.1%; border-radius:1.6px;"></div></div>
+        <div class="card-foot">
+          <span class="pct">+1,41%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>1,7%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-zert"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-zert">Zertifikat</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=LS9ETB" target="_blank" rel="noopener">LS9ETB</a></div>
+        <div class="card-name">Lang+Schwarz O.E. Index</div>
+        <div class="card-value">415,81&nbsp;€</div>
+        <div class="bar-track neg"><div class="bar neg" style="height:3.5px; width:7.6%; border-radius:1.8px;"></div></div>
+        <div class="card-foot">
+          <span class="pct neg">-2,92%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>2,1%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-strip strip-aktie"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-aktie">Aktie</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=722713" target="_blank" rel="noopener">722713</a></div>
+        <div class="card-name">Strategy A New DL-001</div>
+        <div class="card-value">161,28&nbsp;€</div>
+        <div class="bar-track neg"><div class="bar neg" style="height:5.7px; width:45.7%; border-radius:2.9px;"></div></div>
+        <div class="card-foot">
+          <span class="pct neg">-75,62%</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>0,8%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card dimmed">
+      <div class="card-strip strip-aktie"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-aktie">Aktie</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=A2LQVD" target="_blank" rel="noopener">A2LQVD</a></div>
+        <div class="card-name">Ameria AG VNA ST ON PR.P.</div>
+        <div class="card-value">0,00&nbsp;€</div>
+        <div class="card-foot">
+          <span class="pct zero">wertlos</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>0,0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card dimmed">
+      <div class="card-strip strip-aktie"></div>
+      <div class="card-body">
+        <div class="card-top"><span class="badge badge-aktie">Aktie</span><a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=A2NBP6" target="_blank" rel="noopener">A2NBP6</a></div>
+        <div class="card-name">Ameria AG VNA VZO ON PR.P</div>
+        <div class="card-value">0,00&nbsp;€</div>
+        <div class="card-foot">
+          <span class="pct zero">wertlos</span>
+          <span class="share"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>0,0%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+</body>
+</html>
