@@ -1,0 +1,104 @@
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { createEventStore } = require("../eventStore.js");
+const { createDomain } = require("../domain.js");
+
+function neueDomaene() {
+  return createDomain(createEventStore());
+}
+
+Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Position", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 10, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
+
+  const { depotwert, kaufwertGesamt, positionen } = domain.positionenAbfragen();
+  const p = positionen[0];
+
+  if (p.wert !== 1200) throw new Error(`erwartet wert 1200, war ${p.wert}`);
+  if (p.kaufwert !== 1000) throw new Error(`erwartet kaufwert 1000, war ${p.kaufwert}`);
+  if (p.diffAbs !== 200) throw new Error(`erwartet diffAbs 200, war ${p.diffAbs}`);
+  if (Math.abs(p.diffPct - 20) > 1e-9) throw new Error(`erwartet diffPct 20, war ${p.diffPct}`);
+  if (depotwert !== 1200) throw new Error(`erwartet depotwert 1200, war ${depotwert}`);
+  if (kaufwertGesamt !== 1000) throw new Error(`erwartet kaufwertGesamt 1000, war ${kaufwertGesamt}`);
+});
+
+Deno.test("anteilAmDepot mehrerer Positionen summiert sich zu 100 Prozent", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", stueck: 1, kaufkurs: 300, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "B", kurs: 300, datum: "2026-07-01" });
+
+  const { positionen } = domain.positionenAbfragen();
+  const summe = positionen.reduce((s: number, p: any) => s + p.anteilAmDepot, 0);
+  if (Math.abs(summe - 100) > 1e-9) throw new Error(`erwartet Summe 100, war ${summe}`);
+
+  const a = positionen.find((p: any) => p.wertpapierId === "A");
+  if (Math.abs(a.anteilAmDepot - 25) > 1e-9) throw new Error(`erwartet 25% für A, war ${a.anteilAmDepot}`);
+});
+
+Deno.test("mehrere kauf-Events derselben wertpapierId addieren sich (Nachkauf)", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "A", stueck: 1, kaufkurs: 300, datum: "2026-07-10" }); // Nachkauf, kein name/typ nötig
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24" });
+
+  const { positionen } = domain.positionenAbfragen();
+  const p = positionen[0];
+
+  if (p.stueck !== 2) throw new Error(`erwartet Stück 2, war ${p.stueck}`);
+  if (p.kaufwert !== 400) throw new Error(`erwartet Kaufwert 400, war ${p.kaufwert}`);
+  if (p.kaufkurs !== 200) throw new Error(`erwartet Ø-Kaufkurs 200, war ${p.kaufkurs}`);
+  if (p.name !== "Test AG") throw new Error("Name muss vom ersten Kauf-Event übernommen werden");
+});
+
+Deno.test("ein Kursupdate mit früherem Datum überschreibt nicht das spätere", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24T11:12:25" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 1, datum: "2020-01-01" }); // absichtlich früher
+
+  const { positionen } = domain.positionenAbfragen();
+  const p = positionen[0];
+  if (p.kurs !== 500) throw new Error(`erwartet weiterhin Kurs 500, war ${p.kurs}`);
+});
+
+Deno.test("unbekannter Kaufkurs führt zu kaufwert=null statt einer erfundenen Zahl", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Wertloses Papier", typ: "Aktie", stueck: 1, kaufkurs: null, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 0, datum: "2026-07-01" });
+
+  const { positionen } = domain.positionenAbfragen();
+  const p = positionen[0];
+  if (p.kaufwert !== null) throw new Error(`erwartet kaufwert null, war ${p.kaufwert}`);
+  if (p.diffPct !== null) throw new Error(`erwartet diffPct null, war ${p.diffPct}`);
+  if (p.wert !== 0) throw new Error(`erwartet wert 0, war ${p.wert}`);
+});
+
+Deno.test("ohne Kursupdate ist der Wert 0", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 5, kaufkurs: 100, datum: "2026-07-01" });
+
+  const { positionen } = domain.positionenAbfragen();
+  if (positionen[0].wert !== 0) throw new Error(`erwartet wert 0, war ${positionen[0].wert}`);
+});
+
+Deno.test("positionsverlaufAbfragen liefert Events neueste zuerst", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
+
+  const verlauf = domain.positionsverlaufAbfragen("A");
+  if (verlauf.length !== 3) throw new Error(`erwartet 3 Ereignisse, war ${verlauf.length}`);
+  if (verlauf[0].datum !== "2026-07-24") throw new Error("neuestes Ereignis muss zuerst stehen");
+  if (verlauf[2].datum !== "2026-07-01") throw new Error("ältestes Ereignis muss zuletzt stehen");
+});
+
+Deno.test("positionsverlaufAbfragen für unbekannte wertpapierId liefert leeres Array", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  const verlauf = domain.positionsverlaufAbfragen("UNBEKANNT");
+  if (verlauf.length !== 0) throw new Error(`erwartet leeres Array, war ${verlauf.length} Einträge`);
+});
