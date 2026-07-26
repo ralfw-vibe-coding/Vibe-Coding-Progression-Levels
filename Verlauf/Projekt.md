@@ -20,6 +20,8 @@ sichtbare Verbesserung vor. Das ist Teil der Lektion, nicht ein Mangel.
 Jede Stufe wird in einer eigenen Datei in diesem Verzeichnis dokumentiert (`Stufe ##.md`) — nicht
 nur das Ergebnis, sondern auch der Weg dorthin, inklusive Umwegen und Korrekturen.
 
+![Vibe Coding – Die 16 Stufen: von der Datei zur sicheren Mehrkundenplattform](assets/vibe%20coding%20-%20die%2016%20stufen.png)
+
 ## Die Stufen — was für den Entwickler jeweils neu ist
 
 1. **Statische Seite** — Daten rein, HTML raus: eine App ganz ohne Laufzeit-Logik und ohne Server.
