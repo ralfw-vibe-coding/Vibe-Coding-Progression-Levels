@@ -11,11 +11,12 @@ function createBody(domain, speicher, imExport) {
     domain.initialize(speicher.get());
   }
 
-  // filter ist optional: { suchbegriff, typen }. Suchbegriff wird gegen den Namen geprüft
-  // (Groß-/Kleinschreibung egal), typen ist eine Liste erlaubter Typ-Werte. Depotwert,
-  // Kaufwert und Veränderung bleiben unverändert vom Filter — sie beschreiben weiterhin das
-  // ganze Depot, nicht nur den sichtbaren Ausschnitt. Ebenso bleibt anteilAmDepot je Position
-  // depot-weit, weil das schon von der Domäne aus dem vollständigen Bestand berechnet wurde.
+  // filter ist optional: { suchbegriff, typen, broker }. Suchbegriff wird gegen den Namen
+  // geprüft (Groß-/Kleinschreibung egal), typen und broker sind je eine Liste erlaubter
+  // Werte (Mehrfachauswahl). Depotwert, Kaufwert und Veränderung bleiben unverändert vom
+  // Filter — sie beschreiben weiterhin das ganze Depot, nicht nur den sichtbaren Ausschnitt.
+  // Ebenso bleiben anteilAmDepot je Position und bekannteBroker depot-weit, weil beide schon
+  // von der Domäne aus dem vollständigen Bestand berechnet wurden.
   function depotAbfragen(filter) {
     const modell = domain.positionenAbfragen();
     if (!filter) return modell;
@@ -26,6 +27,9 @@ function createBody(domain, speicher, imExport) {
     }
     if (filter.typen && filter.typen.length > 0) {
       positionen = positionen.filter((p) => filter.typen.includes(p.typ));
+    }
+    if (filter.broker && filter.broker.length > 0) {
+      positionen = positionen.filter((p) => filter.broker.includes(p.broker));
     }
     return { ...modell, positionen };
   }
@@ -45,15 +49,15 @@ function createBody(domain, speicher, imExport) {
   // Workflow: eine neue Position braucht sowohl einen Kauf als auch einen aktuellen Kurs,
   // sonst wäre sie sofort "wertlos". Die Domäne kennt nur die beiden atomaren Commands,
   // die Komposition ist Wissen des Body.
-  function neuePositionErfassen({ wertpapierId, name, typ, stueck, kaufkurs, kurs, datum }) {
-    domain.kaufErfassen({ wertpapierId, name, typ, stueck, kaufkurs, datum });
+  function neuePositionErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, kurs, datum }) {
+    domain.kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
     domain.kursupdateErfassen({ wertpapierId, kurs, datum });
     zustandSichern();
     return domain.positionenAbfragen();
   }
 
-  function positionsverlaufAbfragen(wertpapierId) {
-    return domain.positionsverlaufAbfragen(wertpapierId);
+  function positionsverlaufAbfragen({ wertpapierId, broker }) {
+    return domain.positionsverlaufAbfragen({ wertpapierId, broker });
   }
 
   function exportieren() {

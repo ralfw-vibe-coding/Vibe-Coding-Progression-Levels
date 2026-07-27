@@ -1,8 +1,8 @@
 // Domäne: kennt den Event-Store, kapselt den App-State. Commands erzeugen Events,
 // Queries projizieren Events zu einem Modell. Keine Formatierung, keine Darstellung.
 function createDomain(eventStore) {
-  function kaufErfassen({ wertpapierId, name, typ, stueck, kaufkurs, datum }) {
-    eventStore.append("kauf", { wertpapierId, name, typ, stueck, kaufkurs, datum });
+  function kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum }) {
+    eventStore.append("kauf", { wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
   }
 
   function kursupdateErfassen({ wertpapierId, kurs, datum }) {
@@ -10,18 +10,21 @@ function createDomain(eventStore) {
   }
 
   function positionenAbfragen() {
-    // Mehrere "kauf"-Events zur selben wertpapierId sind Nachkäufe und werden addiert:
-    // Stück summiert sich, Kaufwert ist die Summe der einzelnen Stück×Kaufkurs-Anteile.
-    // Name/Typ kommen vom ersten "kauf"-Event (der Position ihre Identität gibt).
+    // Mehrere "kauf"-Events zu selber wertpapierId UND selbem Broker sind Nachkäufe und
+    // werden addiert: Stück summiert sich, Kaufwert ist die Summe der einzelnen
+    // Stück×Kaufkurs-Anteile. Derselbe Titel bei verschiedenen Brokern ist dagegen eine
+    // eigenständige Position — der Broker gehört zur Identität, nicht nur zur Beschriftung.
     const kaeufe = new Map();
     const kurse = new Map();
     for (const e of eventStore.query()) {
       if (e.eventType === "kauf") {
         const p = e.payload;
-        let agg = kaeufe.get(p.wertpapierId);
+        const broker = p.broker || null;
+        const schluessel = `${p.wertpapierId}::${broker || ""}`;
+        let agg = kaeufe.get(schluessel);
         if (!agg) {
-          agg = { name: p.name, typ: p.typ, stueck: 0, kaufwertSumme: 0, kaufwertBekannt: false };
-          kaeufe.set(p.wertpapierId, agg);
+          agg = { wertpapierId: p.wertpapierId, name: p.name, typ: p.typ, broker, stueck: 0, kaufwertSumme: 0, kaufwertBekannt: false };
+          kaeufe.set(schluessel, agg);
         }
         agg.stueck += p.stueck;
         if (p.kaufkurs != null) {
@@ -44,8 +47,8 @@ function createDomain(eventStore) {
     const positionen = [];
     let depotwert = 0;
     let kaufwertGesamt = 0;
-    for (const [wertpapierId, agg] of kaeufe) {
-      const kursupdate = kurse.get(wertpapierId);
+    for (const agg of kaeufe.values()) {
+      const kursupdate = kurse.get(agg.wertpapierId);
       const kurs = kursupdate ? kursupdate.payload.kurs : null;
       const kursDatum = kursupdate ? kursupdate.payload.datum : null;
       const wert = kurs != null ? agg.stueck * kurs : 0;
@@ -54,7 +57,7 @@ function createDomain(eventStore) {
       const diffAbs = kaufwert != null ? wert - kaufwert : null;
       const diffPct = kaufwert ? (diffAbs / kaufwert) * 100 : null;
       positionen.push({
-        wertpapierId, name: agg.name, typ: agg.typ, stueck: agg.stueck,
+        wertpapierId: agg.wertpapierId, name: agg.name, typ: agg.typ, broker: agg.broker, stueck: agg.stueck,
         wert, kurs, kursDatum, kaufwert, kaufkurs, diffAbs, diffPct,
       });
       depotwert += wert;
@@ -68,15 +71,20 @@ function createDomain(eventStore) {
     const veraenderungAbs = depotwert - kaufwertGesamt;
     const veraenderungPct = kaufwertGesamt ? (veraenderungAbs / kaufwertGesamt) * 100 : 0;
 
-    return { depotwert, kaufwertGesamt, veraenderungAbs, veraenderungPct, positionen };
+    // Alle im Bestand tatsächlich vorkommenden Broker, für Auswahl-/Filterlisten im Frontend.
+    const bekannteBroker = [...new Set(positionen.map((p) => p.broker).filter(Boolean))].sort();
+
+    return { depotwert, kaufwertGesamt, veraenderungAbs, veraenderungPct, positionen, bekannteBroker };
   }
 
-  function positionsverlaufAbfragen(wertpapierId) {
+  function positionsverlaufAbfragen({ wertpapierId, broker }) {
     // Umgekehrt chronologisch: neuestes Ereignis zuerst (nach fachlichem Datum, bei
-    // Gleichstand nach Erfassungsreihenfolge).
+    // Gleichstand nach Erfassungsreihenfolge). Kauf-Ereignisse gehören nur zum Verlauf, wenn
+    // ihr Broker zur angefragten Position passt — Kursupdates gelten titelweit für alle
+    // Broker, da der Kurs nicht vom Broker abhängt.
     return eventStore
       .query({ wertpapierId })
-      .slice()
+      .filter((e) => e.eventType === "kursupdate" || (e.payload.broker || null) === (broker || null))
       .sort((a, b) => {
         if (a.payload.datum !== b.payload.datum) return a.payload.datum > b.payload.datum ? -1 : 1;
         return b.seq - a.seq;

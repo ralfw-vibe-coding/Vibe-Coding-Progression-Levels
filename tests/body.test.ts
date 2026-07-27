@@ -44,6 +44,20 @@ Deno.test("neuePositionErfassen legt Kauf und Kursupdate zusammen an", () => {
   if (p.diffPct == null) throw new Error("Position darf nach neuePositionErfassen nicht 'wertlos' sein");
 });
 
+Deno.test("neuePositionErfassen reicht broker bis ins Modell durch", () => {
+  const body = neuerBody();
+  const modell = body.neuePositionErfassen({
+    wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect",
+    stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-26",
+  });
+  if (modell.positionen[0].broker !== "comdirect") {
+    throw new Error(`erwartet broker "comdirect", war ${modell.positionen[0].broker}`);
+  }
+  if (JSON.stringify(modell.bekannteBroker) !== JSON.stringify(["comdirect"])) {
+    throw new Error(`erwartet bekannteBroker ["comdirect"], war ${JSON.stringify(modell.bekannteBroker)}`);
+  }
+});
+
 Deno.test("kaufErfassen gibt aktualisiertes Modell zurück", () => {
   const body = neuerBody();
   body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
@@ -62,8 +76,15 @@ Deno.test("kursupdateErfassen aktualisiert den Kurs einer bestehenden Position",
 Deno.test("positionsverlaufAbfragen reicht bis zur Domäne durch", () => {
   const body = neuerBody();
   body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-  const verlauf = body.positionsverlaufAbfragen("A");
+  const verlauf = body.positionsverlaufAbfragen({ wertpapierId: "A" });
   if (verlauf.length !== 2) throw new Error(`erwartet 2 Ereignisse (Kauf + Kursupdate), war ${verlauf.length}`);
+});
+
+Deno.test("neuePositionErfassen bei unterschiedlichem Broker legt zusätzliche Position an, statt zu addieren", () => {
+  const body = neuerBody();
+  body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+  const modell = body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+  if (modell.positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${modell.positionen.length}`);
 });
 
 Deno.test("depotAbfragen liefert das Gesamtmodell ohne vorherige Erfassung leer", () => {
@@ -171,6 +192,29 @@ Deno.test("depotAbfragen filtert nach Typ", () => {
   const ids = modell.positionen.map((p: any) => p.wertpapierId).sort();
   if (ids.length !== 2 || ids[0] !== "B" || ids[1] !== "C") {
     throw new Error(`erwartet [B, C], war [${ids.join(", ")}]`);
+  }
+});
+
+Deno.test("depotAbfragen filtert nach Broker", () => {
+  const body = neuerBody();
+  body.neuePositionErfassen({ wertpapierId: "A", name: "Apfel AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+  body.neuePositionErfassen({ wertpapierId: "B", name: "Bank-ETF", typ: "ETF", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+
+  const modell = body.depotAbfragen({ broker: ["comdirect"] });
+  if (modell.positionen.length !== 1) throw new Error(`erwartet 1 Treffer, war ${modell.positionen.length}`);
+  if (modell.positionen[0].wertpapierId !== "A") throw new Error("erwartet Treffer A");
+});
+
+Deno.test("depotAbfragen erlaubt Mehrfachauswahl beim Broker-Filter", () => {
+  const body = neuerBody();
+  body.neuePositionErfassen({ wertpapierId: "A", name: "Apfel AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+  body.neuePositionErfassen({ wertpapierId: "B", name: "Bank-ETF", typ: "ETF", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+  body.neuePositionErfassen({ wertpapierId: "C", name: "Citrus Zertifikat", typ: "Zertifikat", broker: "Trade Republic", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+
+  const modell = body.depotAbfragen({ broker: ["comdirect", "Interactive Brokers"] });
+  const ids = modell.positionen.map((p: any) => p.wertpapierId).sort();
+  if (ids.length !== 2 || ids[0] !== "A" || ids[1] !== "B") {
+    throw new Error(`erwartet [A, B], war [${ids.join(", ")}]`);
   }
 });
 

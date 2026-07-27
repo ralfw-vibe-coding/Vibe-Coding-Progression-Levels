@@ -113,6 +113,23 @@
   .badge-fonds { background: #F1E9FD; color: #6226C4; }
   .badge-etf { background: #E5EEFF; color: #1D4FBE; }
   .badge-aktie { background: #FCE7F3; color: #A61E5E; }
+  .card-top-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .card-broker {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 500;
+    background: var(--track);
+    color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .wkn {
     font-size: 11px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -205,11 +222,24 @@
   .filter-bar {
     margin-bottom: 16px;
   }
+  .filter-zeile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .filter-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+    width: 92px;
+  }
   .filter-typen {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
   }
   .filter-suche {
     width: 100%;
@@ -236,6 +266,26 @@
   .typ-chip.active.chip-etf { background: #E5EEFF; color: #1D4FBE; border-color: transparent; }
   .typ-chip.active.chip-zert { background: #FDF1DC; color: #8A5A0A; border-color: transparent; }
   .typ-chip.active.chip-fonds { background: #F1E9FD; color: #6226C4; border-color: transparent; }
+  .broker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .broker-chips:empty { display: none; }
+  .broker-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--border);
+    background: #FFFFFF;
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .broker-chip:hover { background: var(--track); }
+  .broker-chip.active { background: var(--ink); color: #FFFFFF; border-color: transparent; }
 
   .page-header-left {
     display: flex;
@@ -340,6 +390,127 @@
     gap: 8px;
     margin-top: 20px;
   }
+
+  .page-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .page-nav-link {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .page-nav-link:hover { background: var(--track); }
+  .page-nav-link.active { background: var(--ink); color: #FFFFFF; }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .dashboard-card {
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .dashboard-card h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .chart-leer {
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .chart-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .chart-donut { flex-shrink: 0; }
+  .chart-legende {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 120px;
+  }
+  .chart-legende-zeile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .chart-legende-punkt {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .chart-legende-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+  }
+  .chart-legende-wert {
+    font-weight: 500;
+    color: var(--ink);
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .chart-nebenwert {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    white-space: normal;
+  }
+  .chart-nebenwert-pct.pos { color: var(--green); }
+  .chart-nebenwert-pct.neg { color: var(--red); }
+  .chart-zeilen {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chart-zeile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px 128px;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .chart-zeile-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+  }
+  .chart-zeile-typ {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    margin-left: 4px;
+  }
+  .chart-zeile-wert {
+    text-align: right;
+    font-weight: 500;
+  }
+  .chart-zeile-wert.neg { color: var(--red); }
+  .chart-zeile-wert.pos { color: var(--green); }
+  .chart-bar { fill: var(--ink); }
+  .chart-bar.pos { fill: var(--green); }
+  .chart-bar.neg { fill: var(--red); }
+  .chart-mittellinie { stroke: var(--border); }
+
   .btn {
     padding: 8px 14px;
     border-radius: 8px;
@@ -383,36 +554,71 @@
     </div>
   </div>
 
-  <div class="hero">
-    <div class="hero-card wert">
-      <div class="hero-label">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-        <span>Depotwert</span>
-      </div>
-      <div class="hero-value" id="hero-wert"></div>
-      <div class="hero-sub" id="hero-kaufwert"></div>
-    </div>
-    <div class="hero-card veraend">
-      <div class="hero-label">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        <span>Veränderung</span>
-      </div>
-      <div class="hero-value" id="hero-veraenderung-pct"></div>
-      <div class="hero-sub" id="hero-veraenderung-abs"></div>
-    </div>
-  </div>
+  <nav class="page-nav">
+    <a href="#/positionen" class="page-nav-link" data-route="positionen">Positionen</a>
+    <a href="#/dashboard" class="page-nav-link" data-route="dashboard">Dashboard</a>
+  </nav>
 
-  <div class="filter-bar">
-    <input type="text" class="filter-suche" id="filter-suche" placeholder="Suche nach Name…">
-    <div class="filter-typen">
-      <button type="button" class="typ-chip chip-aktie" data-typ="Aktie">Aktie</button>
-      <button type="button" class="typ-chip chip-etf" data-typ="ETF">ETF</button>
-      <button type="button" class="typ-chip chip-zert" data-typ="Zertifikat">Zertifikat</button>
-      <button type="button" class="typ-chip chip-fonds" data-typ="Fonds">Fonds</button>
+  <section id="view-positionen">
+    <div class="hero">
+      <div class="hero-card wert">
+        <div class="hero-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+          <span>Depotwert</span>
+        </div>
+        <div class="hero-value" id="hero-wert"></div>
+        <div class="hero-sub" id="hero-kaufwert"></div>
+      </div>
+      <div class="hero-card veraend">
+        <div class="hero-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <span>Veränderung</span>
+        </div>
+        <div class="hero-value" id="hero-veraenderung-pct"></div>
+        <div class="hero-sub" id="hero-veraenderung-abs"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="positions" id="positions"></div>
+    <div class="filter-bar">
+      <input type="text" class="filter-suche" id="filter-suche" placeholder="Suche nach Name…">
+      <div class="filter-zeile">
+        <span class="filter-label">Positionstyp:</span>
+        <div class="filter-typen">
+          <button type="button" class="typ-chip chip-aktie" data-typ="Aktie">Aktie</button>
+          <button type="button" class="typ-chip chip-etf" data-typ="ETF">ETF</button>
+          <button type="button" class="typ-chip chip-zert" data-typ="Zertifikat">Zertifikat</button>
+          <button type="button" class="typ-chip chip-fonds" data-typ="Fonds">Fonds</button>
+        </div>
+      </div>
+      <div class="filter-zeile">
+        <span class="filter-label">Broker:</span>
+        <div class="filter-typen" id="filter-broker-chips"></div>
+      </div>
+    </div>
+
+    <div class="positions" id="positions"></div>
+  </section>
+
+  <section id="view-dashboard" hidden>
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <h2>Zusammensetzung nach Typ</h2>
+        <div id="chart-typ"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Zusammensetzung nach Broker</h2>
+        <div id="chart-broker"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Gewinner &amp; Verlierer</h2>
+        <div id="chart-gewinner-verlierer"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Konzentration</h2>
+        <div id="chart-konzentration"></div>
+      </div>
+    </div>
+  </section>
 
 </main>
 
@@ -429,6 +635,11 @@
         <option>Zertifikat</option>
         <option>Fonds</option>
       </select>
+    </div>
+    <div class="field">
+      <label>Broker (optional)</label>
+      <div class="broker-chips" id="np-broker-chips"></div>
+      <input type="text" id="np-broker-neu" placeholder="Neuer Broker…">
     </div>
     <div class="field"><label for="np-stueck">Stück</label><input id="np-stueck" name="stueck" type="number" step="any" min="0" required></div>
     <div class="field"><label for="np-kaufkurs">Kaufkurs (€)</label><input id="np-kaufkurs" name="kaufkurs" type="number" step="any" min="0" required></div>
@@ -532,8 +743,14 @@
     return Math.min(9, Math.max(3, 3 + 6 * anteil));
   }
 
-  function verlaufHtml(wertpapierId) {
-    const eintraege = body.positionsverlaufAbfragen(wertpapierId);
+  // Broker gehört zur Identität einer Position (siehe domain.js): derselbe Titel bei
+  // verschiedenen Brokern sind zwei eigenständige Karten mit eigenem Auf-/Zuklapp-Zustand.
+  function verlaufSchluessel(wertpapierId, broker) {
+    return `${wertpapierId}::${broker || ""}`;
+  }
+
+  function verlaufHtml(wertpapierId, broker) {
+    const eintraege = body.positionsverlaufAbfragen({ wertpapierId, broker });
     const zeilen = eintraege.map((e) => {
       const art = e.eventType === "kauf" ? "Kauf" : "Kurs";
       const detail = e.eventType === "kauf"
@@ -557,7 +774,7 @@
       const klasse = TYP_KLASSE[p.typ] || "aktie";
       const hatVeraenderung = p.diffPct != null;
       const negativ = hatVeraenderung && p.diffPct < 0;
-      const istAufgeklappt = aufgeklappt.has(p.wertpapierId);
+      const istAufgeklappt = aufgeklappt.has(verlaufSchluessel(p.wertpapierId, p.broker));
 
       const card = document.createElement("div");
       card.className = "card" + (hatVeraenderung ? "" : " dimmed") + (istAufgeklappt ? " aufgeklappt" : "");
@@ -580,7 +797,10 @@
         <div class="card-strip strip-${klasse}"></div>
         <div class="card-body">
           <div class="card-top">
-            <span class="badge badge-${klasse}">${p.typ}</span>
+            <div class="card-top-left">
+              <span class="badge badge-${klasse}">${p.typ}</span>
+              ${p.broker ? `<span class="card-broker">${p.broker}</span>` : ""}
+            </div>
             <div class="card-top-right">
               <a class="wkn" href="https://www.finanzen.net/suchergebnis.asp?_search=${p.wertpapierId}" target="_blank" rel="noopener">${p.wertpapierId}</a>
               <div class="card-add-wrap">
@@ -588,17 +808,17 @@
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 </button>
                 <div class="add-menu">
-                  <button type="button" data-action="kauf" data-wertpapier-id="${p.wertpapierId}" data-name="${p.name}">Kauf erfassen</button>
+                  <button type="button" data-action="kauf" data-wertpapier-id="${p.wertpapierId}" data-name="${p.name}" data-broker="${p.broker || ""}">Kauf erfassen</button>
                   <button type="button" data-action="kursupdate" data-wertpapier-id="${p.wertpapierId}" data-name="${p.name}">Kursupdate erfassen</button>
                 </div>
               </div>
             </div>
           </div>
-          <div class="card-name" data-verlauf-toggle="${p.wertpapierId}">
+          <div class="card-name" data-verlauf-toggle data-wertpapier-id="${p.wertpapierId}" data-broker="${p.broker || ""}">
             <span>${p.name}</span>
             <svg class="verlauf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </div>
-          ${istAufgeklappt ? verlaufHtml(p.wertpapierId) : ""}
+          ${istAufgeklappt ? verlaufHtml(p.wertpapierId, p.broker) : ""}
           <div class="card-value-row">
             <span class="card-value">${fmtEUR(p.wert)}</span>
             ${p.kurs != null ? `<span class="card-value-detail">(${fmtKurs(p.kurs)})${p.kursDatum ? " " + fmtDatum(p.kursDatum) : ""}</span>` : ""}
@@ -614,14 +834,175 @@
     }
   }
 
+  // --- Dashboard: 4 handgebaute SVG-Grafiken aus dem unveränderten, ungefilterten
+  // Gesamtbestand — das Dashboard gibt immer einen Überblick übers ganze Depot, unabhängig
+  // vom Filter der Positionen-Seite. Keine externe Chart-Bibliothek. ---
+  // Summiert wert und kaufwert je Gruppe, damit sich daraus (wie bei einer einzelnen
+  // Position) eine gruppenweite Gewinn/Verlust-Quote ableiten lässt. kaufwertBekannt bleibt
+  // false, solange keine einzige Position der Gruppe einen bekannten Kaufwert hat — dann gibt
+  // es auch gruppenweit keine sinnvolle Prozentangabe.
+  function gruppenSummen(positionen, schluesselFn) {
+    const gruppen = new Map();
+    for (const p of positionen) {
+      const schluessel = schluesselFn(p);
+      let agg = gruppen.get(schluessel);
+      if (!agg) {
+        agg = { wert: 0, kaufwert: 0, kaufwertBekannt: false };
+        gruppen.set(schluessel, agg);
+      }
+      agg.wert += p.wert;
+      if (p.kaufwert != null) {
+        agg.kaufwert += p.kaufwert;
+        agg.kaufwertBekannt = true;
+      }
+    }
+    return gruppen;
+  }
+  function gruppenDiffPct(agg) {
+    return agg.kaufwertBekannt && agg.kaufwert ? ((agg.wert - agg.kaufwert) / agg.kaufwert) * 100 : null;
+  }
+
+  function donutChartHtml(eintraege) {
+    const gesamt = eintraege.reduce((s, e) => s + e.wert, 0);
+    if (gesamt <= 0) return `<div class="chart-leer">Keine Werte vorhanden</div>`;
+    // Kreis samt Strichbreite muss innerhalb der viewBox bleiben (radius + strokeWidth/2 <=
+    // mitte), sonst wird er am Rand abgeschnitten.
+    const radius = 46, strokeWidth = 16, umfang = 2 * Math.PI * radius, mitte = 64;
+    let cursor = 0;
+    const kreise = eintraege.map((e) => {
+      const laenge = (e.wert / gesamt) * umfang;
+      const dashoffset = -cursor;
+      cursor += laenge;
+      return `<circle cx="${mitte}" cy="${mitte}" r="${radius}" fill="none" stroke="${e.farbe}" stroke-width="${strokeWidth}" stroke-dasharray="${laenge.toFixed(2)} ${(umfang - laenge).toFixed(2)}" stroke-dashoffset="${dashoffset.toFixed(2)}"></circle>`;
+    }).join("");
+    const legende = eintraege.map((e) => {
+      const diffHtml = e.diffPct != null
+        ? ` · <span class="chart-nebenwert-pct ${e.diffPct < 0 ? "neg" : "pos"}">${fmtPct(e.diffPct)}</span>`
+        : "";
+      return `
+      <div class="chart-legende-zeile">
+        <span class="chart-legende-punkt" style="background:${e.farbe}"></span>
+        <span class="chart-legende-label">${e.label}</span>
+        <span class="chart-legende-wert">${((e.wert / gesamt) * 100).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%<span class="chart-nebenwert">${fmtEUR(e.wert)}${diffHtml}</span></span>
+      </div>`;
+    }).join("");
+    return `
+      <div class="chart-donut-wrap">
+        <svg width="128" height="128" viewBox="0 0 128 128" class="chart-donut">
+          <g transform="rotate(-90 ${mitte} ${mitte})">${kreise}</g>
+        </svg>
+        <div class="chart-legende">${legende}</div>
+      </div>`;
+  }
+
+  const TYP_FARBE = { Aktie: "#DB2777", ETF: "#2563EB", Zertifikat: "#D97706", Fonds: "#7C3AED" };
+  function renderTypChart(positionen) {
+    const gruppen = gruppenSummen(positionen, (p) => p.typ);
+    const eintraege = [...gruppen.entries()]
+      .map(([typ, agg]) => ({ label: typ, wert: agg.wert, diffPct: gruppenDiffPct(agg), farbe: TYP_FARBE[typ] || "#8B8DA0" }))
+      .sort((a, b) => b.wert - a.wert);
+    document.getElementById("chart-typ").innerHTML = donutChartHtml(eintraege);
+  }
+
+  const BROKER_FARBEN = ["#4F46E5", "#0F9D58", "#DB2777", "#D97706", "#2563EB", "#7C3AED", "#DC2626", "#0EA5E9"];
+  function renderBrokerChart(positionen) {
+    const gruppen = gruppenSummen(positionen, (p) => p.broker || "Ohne Broker");
+    const eintraege = [...gruppen.entries()]
+      .sort((a, b) => b[1].wert - a[1].wert)
+      .map(([broker, agg], i) => ({ label: broker, wert: agg.wert, diffPct: gruppenDiffPct(agg), farbe: BROKER_FARBEN[i % BROKER_FARBEN.length] }));
+    document.getElementById("chart-broker").innerHTML = donutChartHtml(eintraege);
+  }
+
+  function renderGewinnerVerliererChart(positionen) {
+    const bewertet = positionen.filter((p) => p.diffPct != null).sort((a, b) => b.diffPct - a.diffPct);
+    const container = document.getElementById("chart-gewinner-verlierer");
+    if (bewertet.length === 0) {
+      container.innerHTML = `<div class="chart-leer">Keine bewerteten Positionen</div>`;
+      return;
+    }
+    container.innerHTML = `<div class="chart-zeilen">${bewertet.map((p) => {
+      const negativ = p.diffPct < 0;
+      const laenge = Math.min(45, balkenAnteil(p.diffPct) * 90);
+      const rect = negativ
+        ? `<rect class="chart-bar neg" x="${(45 - laenge).toFixed(1)}" y="3" width="${laenge.toFixed(1)}" height="8" rx="4"></rect>`
+        : `<rect class="chart-bar pos" x="45" y="3" width="${laenge.toFixed(1)}" height="8" rx="4"></rect>`;
+      return `
+        <div class="chart-zeile">
+          <span class="chart-zeile-label">${p.name}<span class="chart-zeile-typ">${p.typ}</span></span>
+          <svg width="90" height="14" viewBox="0 0 90 14"><line class="chart-mittellinie" x1="45" y1="0" x2="45" y2="14"></line>${rect}</svg>
+          <span class="chart-zeile-wert ${negativ ? "neg" : "pos"}">${fmtPct(p.diffPct)}<span class="chart-nebenwert">${fmtSignedEUR(p.diffAbs)}</span></span>
+        </div>`;
+    }).join("")}</div>`;
+  }
+
+  function renderKonzentrationChart(positionen) {
+    const sortiert = positionen.slice().sort((a, b) => b.anteilAmDepot - a.anteilAmDepot);
+    const container = document.getElementById("chart-konzentration");
+    if (sortiert.length === 0) {
+      container.innerHTML = `<div class="chart-leer">Keine Positionen</div>`;
+      return;
+    }
+    container.innerHTML = `<div class="chart-zeilen">${sortiert.map((p) => {
+      const breite = Math.min(90, (p.anteilAmDepot / 100) * 90);
+      const diffHtml = p.diffPct != null
+        ? ` · <span class="chart-nebenwert-pct ${p.diffPct < 0 ? "neg" : "pos"}">${fmtPct(p.diffPct)}</span>`
+        : "";
+      return `
+        <div class="chart-zeile">
+          <span class="chart-zeile-label">${p.name}<span class="chart-zeile-typ">${p.typ}</span></span>
+          <svg width="90" height="14" viewBox="0 0 90 14"><rect class="chart-bar" x="0" y="3" width="${breite.toFixed(1)}" height="8" rx="4"></rect></svg>
+          <span class="chart-zeile-wert">${p.anteilAmDepot.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%<span class="chart-nebenwert">${fmtEUR(p.wert)}${diffHtml}</span></span>
+        </div>`;
+    }).join("")}</div>`;
+  }
+
+  function renderDashboard() {
+    const modell = body.depotAbfragen();
+    renderTypChart(modell.positionen);
+    renderBrokerChart(modell.positionen);
+    renderGewinnerVerliererChart(modell.positionen);
+    renderKonzentrationChart(modell.positionen);
+  }
+
+  // --- Routing: #/positionen (Default) und #/dashboard, rein clientseitig per Hash — auch
+  // unter file:// funktionsfähig. Kein location.reload(), nur Sichtbarkeit umschalten. ---
+  const ROUTEN = ["positionen", "dashboard"];
+  function aktuelleRoute() {
+    const hash = location.hash.replace(/^#\//, "");
+    return ROUTEN.includes(hash) ? hash : "positionen";
+  }
+  function route() {
+    const aktiv = aktuelleRoute();
+    document.getElementById("view-positionen").hidden = aktiv !== "positionen";
+    document.getElementById("view-dashboard").hidden = aktiv !== "dashboard";
+    document.querySelectorAll(".page-nav-link").forEach((link) => {
+      link.classList.toggle("active", link.dataset.route === aktiv);
+    });
+    if (aktiv === "dashboard") renderDashboard();
+  }
+  window.addEventListener("hashchange", route);
+
   document.getElementById("heute-anzeige").textContent = fmtDatum(HEUTE);
 
-  const aktiverFilter = { suchbegriff: "", typen: [] };
+  const aktiverFilter = { suchbegriff: "", typen: [], broker: [] };
+  const filterBrokerChips = document.getElementById("filter-broker-chips");
+  // Broker-Chips bleiben aktuell, indem sie bei jedem Render aus dem depot-weiten
+  // bekannteBroker neu aufgebaut werden — die laufende Auswahl (aktiverFilter.broker) ist der
+  // Wahrheitsquelle, die Chip-Markup samt aktivem Zustand wird daraus jedes Mal neu erzeugt.
+  function aktualisiereBrokerFilterChips(bekannteBroker) {
+    aktiverFilter.broker = aktiverFilter.broker.filter((b) => bekannteBroker.includes(b));
+    filterBrokerChips.innerHTML = bekannteBroker
+      .map((b) => `<button type="button" class="broker-chip${aktiverFilter.broker.includes(b) ? " active" : ""}" data-broker="${b}">${b}</button>`)
+      .join("");
+  }
   function neuRendern() {
-    renderModell(body.depotAbfragen(aktiverFilter));
+    const modell = body.depotAbfragen(aktiverFilter);
+    renderModell(modell);
+    aktualisiereBrokerFilterChips(modell.bekannteBroker);
   }
 
   neuRendern();
+  route();
 
   // --- Im-/Export: das Frontend stößt nur an, der Body orchestriert Datei, Domäne und
   // Browser-Speicher. Kein Reload nötig — nach dem Import steht das neue Modell sofort da. ---
@@ -637,9 +1018,9 @@
     }
   });
 
-  // --- Filterung: Suchbegriff + Typ-Chips. Reine Anzeigefrage, Depotwert/Veränderung
-  // und anteilAmDepot bleiben unverändert (siehe body.js) — nur welche Karten
-  // erscheinen, ändert sich. ---
+  // --- Filterung: Suchbegriff + Typ-Chips + Broker-Chips, beide Mehrfachauswahl. Reine
+  // Anzeigefrage, Depotwert/Veränderung und anteilAmDepot bleiben unverändert (siehe
+  // body.js) — nur welche Karten erscheinen, ändert sich. ---
   document.getElementById("filter-suche").addEventListener("input", (e) => {
     aktiverFilter.suchbegriff = e.target.value;
     neuRendern();
@@ -654,14 +1035,45 @@
       neuRendern();
     });
   });
+  // Broker-Chips werden bei jedem Render neu aufgebaut (siehe aktualisiereBrokerFilterChips),
+  // daher per Delegation statt direkter Listener auf einzelnen Buttons.
+  filterBrokerChips.addEventListener("click", (e) => {
+    const chip = e.target.closest(".broker-chip");
+    if (!chip) return;
+    const broker = chip.dataset.broker;
+    const index = aktiverFilter.broker.indexOf(broker);
+    if (index === -1) aktiverFilter.broker.push(broker);
+    else aktiverFilter.broker.splice(index, 1);
+    neuRendern();
+  });
 
   // --- Globale Erfassung: neue Position = Kauf + Kursupdate zusammen (Body-Workflow) ---
   const dialogNeuePosition = document.getElementById("dialog-neue-position");
+  const brokerChipsContainer = document.getElementById("np-broker-chips");
+  const brokerNeuFeld = document.getElementById("np-broker-neu");
+
   document.getElementById("btn-neue-position").addEventListener("click", () => {
     const form = document.getElementById("form-neue-position");
     form.reset();
     form.datum.value = HEUTE;
+    // Broker als Tag erfassen: bekannte Broker aus dem Bestand stehen als Chips zur Wahl,
+    // ein neuer lässt sich daneben eintippen (deaktiviert dann jede Chip-Auswahl).
+    const { bekannteBroker } = body.depotAbfragen();
+    brokerChipsContainer.innerHTML = bekannteBroker
+      .map((b) => `<button type="button" class="broker-chip" data-broker="${b}">${b}</button>`)
+      .join("");
     dialogNeuePosition.showModal();
+  });
+  brokerChipsContainer.addEventListener("click", (e) => {
+    const chip = e.target.closest(".broker-chip");
+    if (!chip) return;
+    const warAktiv = chip.classList.contains("active");
+    brokerChipsContainer.querySelectorAll(".broker-chip").forEach((c) => c.classList.remove("active"));
+    if (!warAktiv) chip.classList.add("active");
+    brokerNeuFeld.value = "";
+  });
+  brokerNeuFeld.addEventListener("input", () => {
+    brokerChipsContainer.querySelectorAll(".broker-chip").forEach((c) => c.classList.remove("active"));
   });
   // Aktueller Kurs ist beim Neuanlegen meist noch der Kaufkurs -> als Vorschlag übernehmen,
   // sobald das Kaufkurs-Feld verlassen wird, aber nur falls der Nutzer dort noch nichts
@@ -673,10 +1085,13 @@
   document.getElementById("form-neue-position").addEventListener("submit", (e) => {
     e.preventDefault();
     const form = e.target;
+    const aktiverChip = brokerChipsContainer.querySelector(".broker-chip.active");
+    const broker = brokerNeuFeld.value.trim() || aktiverChip?.dataset.broker || null;
     body.neuePositionErfassen({
       wertpapierId: form.wkn.value.trim(),
       name: form.name.value.trim(),
       typ: form.typ.value,
+      broker,
       stueck: parseFloat(form.stueck.value),
       kaufkurs: parseFloat(form.kaufkurs.value),
       kurs: parseFloat(form.kurs.value),
@@ -687,16 +1102,22 @@
   });
 
   // --- Lokale Erfassung: Nachkauf oder Kursupdate zu einer bestehenden Position ---
+  // Ein Nachkauf muss beim selben Broker landen wie die Position, an der er ausgelöst wurde
+  // — sonst entstünde (Broker gehört zur Identität, siehe domain.js) versehentlich eine
+  // zweite, eigenständige Position statt der beabsichtigten Aufstockung.
   let aktiveWertpapierId = null;
+  let aktiverBroker = null;
   const dialogKauf = document.getElementById("dialog-kauf");
   const dialogKursupdate = document.getElementById("dialog-kursupdate");
 
-  function oeffneKaufDialog(wertpapierId, name) {
+  function oeffneKaufDialog(wertpapierId, name, broker) {
     aktiveWertpapierId = wertpapierId;
+    aktiverBroker = broker || null;
     const form = document.getElementById("form-kauf");
     form.reset();
     form.datum.value = HEUTE;
-    document.getElementById("kauf-position-info").textContent = `${name} (${wertpapierId})`;
+    document.getElementById("kauf-position-info").textContent =
+      aktiverBroker ? `${name} (${wertpapierId}) · ${aktiverBroker}` : `${name} (${wertpapierId})`;
     dialogKauf.showModal();
   }
   function oeffneKursupdateDialog(wertpapierId, name) {
@@ -713,6 +1134,7 @@
     const form = e.target;
     body.kaufErfassen({
       wertpapierId: aktiveWertpapierId,
+      broker: aktiverBroker,
       stueck: parseFloat(form.stueck.value),
       kaufkurs: parseFloat(form.kaufkurs.value),
       datum: form.datum.value,
@@ -751,16 +1173,17 @@
     const menuItem = e.target.closest(".add-menu button");
     if (menuItem) {
       document.querySelectorAll(".card-add-wrap.open").forEach((w) => w.classList.remove("open"));
-      const { wertpapierId, name, action } = menuItem.dataset;
-      if (action === "kauf") oeffneKaufDialog(wertpapierId, name);
+      const { wertpapierId, name, action, broker } = menuItem.dataset;
+      if (action === "kauf") oeffneKaufDialog(wertpapierId, name, broker || null);
       else oeffneKursupdateDialog(wertpapierId, name);
       return;
     }
     const verlaufToggle = e.target.closest("[data-verlauf-toggle]");
     if (verlaufToggle) {
-      const wertpapierId = verlaufToggle.dataset.verlaufToggle;
-      if (aufgeklappt.has(wertpapierId)) aufgeklappt.delete(wertpapierId);
-      else aufgeklappt.add(wertpapierId);
+      const { wertpapierId, broker } = verlaufToggle.dataset;
+      const schluessel = verlaufSchluessel(wertpapierId, broker || null);
+      if (aufgeklappt.has(schluessel)) aufgeklappt.delete(schluessel);
+      else aufgeklappt.add(schluessel);
       neuRendern();
     }
   });

@@ -7,6 +7,52 @@ function neueDomaene() {
   return createDomain(createEventStore());
 }
 
+Deno.test("gleicher Titel bei unterschiedlichem Broker ergibt zwei eigenständige Positionen", () => {
+  // Broker gehört zur Identität einer Position, nicht nur zur Beschriftung: derselbe Titel
+  // lässt sich bei mehreren Brokern gleichzeitig halten.
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+
+  const { positionen } = domain.positionenAbfragen();
+  if (positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${positionen.length}`);
+  const broker = positionen.map((p: any) => p.broker).sort();
+  if (JSON.stringify(broker) !== JSON.stringify(["Interactive Brokers", "comdirect"])) {
+    throw new Error(`erwartet beide Broker vertreten, war ${JSON.stringify(broker)}`);
+  }
+});
+
+Deno.test("Nachkauf mit gleichem Broker wird zur selben Position addiert", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "A", broker: "comdirect", stueck: 1, kaufkurs: 110, datum: "2026-07-10" });
+
+  const { positionen } = domain.positionenAbfragen();
+  if (positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${positionen.length}`);
+  if (positionen[0].stueck !== 2) throw new Error(`erwartet Stück 2, war ${positionen[0].stueck}`);
+  if (positionen[0].broker !== "comdirect") throw new Error(`erwartet broker "comdirect", war ${positionen[0].broker}`);
+});
+
+Deno.test("broker ist optional und wird als null geführt, wenn nicht angegeben", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  const { positionen } = domain.positionenAbfragen();
+  if (positionen[0].broker !== null) throw new Error(`erwartet broker null, war ${positionen[0].broker}`);
+});
+
+Deno.test("bekannteBroker listet jeden vorkommenden Broker genau einmal, sortiert", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "C", name: "C", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "D", name: "D", typ: "Aktie", stueck: 1, kaufkurs: 10, datum: "2026-07-01" }); // ohne broker
+
+  const { bekannteBroker } = domain.positionenAbfragen();
+  if (JSON.stringify(bekannteBroker) !== JSON.stringify(["Interactive Brokers", "comdirect"])) {
+    throw new Error(`erwartet ["Interactive Brokers","comdirect"] sortiert, war ${JSON.stringify(bekannteBroker)}`);
+  }
+});
+
 Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Position", () => {
   const domain = neueDomaene();
   domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 10, kaufkurs: 100, datum: "2026-07-01" });
@@ -101,7 +147,7 @@ Deno.test("positionsverlaufAbfragen liefert Events neueste zuerst", () => {
   domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
   domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
 
-  const verlauf = domain.positionsverlaufAbfragen("A");
+  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A" });
   if (verlauf.length !== 3) throw new Error(`erwartet 3 Ereignisse, war ${verlauf.length}`);
   if (verlauf[0].datum !== "2026-07-24") throw new Error("neuestes Ereignis muss zuerst stehen");
   if (verlauf[2].datum !== "2026-07-01") throw new Error("ältestes Ereignis muss zuletzt stehen");
@@ -110,8 +156,22 @@ Deno.test("positionsverlaufAbfragen liefert Events neueste zuerst", () => {
 Deno.test("positionsverlaufAbfragen für unbekannte wertpapierId liefert leeres Array", () => {
   const domain = neueDomaene();
   domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  const verlauf = domain.positionsverlaufAbfragen("UNBEKANNT");
+  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "UNBEKANNT" });
   if (verlauf.length !== 0) throw new Error(`erwartet leeres Array, war ${verlauf.length} Einträge`);
+});
+
+Deno.test("positionsverlaufAbfragen zeigt nur Käufe des angefragten Brokers, Kursupdates aber titelweit", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 105, datum: "2026-07-02" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+
+  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A", broker: "comdirect" });
+  const kaeufe = verlauf.filter((e: any) => e.eventType === "kauf");
+  if (kaeufe.length !== 1) throw new Error(`erwartet 1 Kauf-Ereignis für comdirect, war ${kaeufe.length}`);
+  if (kaeufe[0].broker !== "comdirect") throw new Error(`erwartet Kauf bei comdirect, war ${kaeufe[0].broker}`);
+  const kursupdates = verlauf.filter((e: any) => e.eventType === "kursupdate");
+  if (kursupdates.length !== 1) throw new Error(`erwartet 1 Kursupdate (titelweit, unabhängig vom Broker), war ${kursupdates.length}`);
 });
 
 Deno.test("dump liefert die rohen Ereignisse unverändert", () => {
