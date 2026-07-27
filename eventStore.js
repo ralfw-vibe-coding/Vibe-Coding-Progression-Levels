@@ -1,7 +1,9 @@
-// Provider: kapselt die Ressource "Append-only Event-Log". Kennt weder Domäne noch UI.
-function createEventStore() {
-  const events = [];
-  let naechsteSeq = 1;
+// Provider: kapselt die Ressource "Append-only Event-Log". Kennt weder Domäne noch UI, und
+// nichts darüber, woher sein Anfangsbestand kommt oder wohin Events am Ende gehen — das ist
+// Sache des Aufrufers. Nach der Konstruktion lässt er sich nur noch erweitern, nie ersetzen.
+function createEventStore(initialEvents = []) {
+  const events = [...initialEvents];
+  let naechsteSeq = events.reduce((max, e) => Math.max(max, e.seq), 0) + 1;
 
   function append(eventType, payload) {
     const event = {

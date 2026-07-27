@@ -30,8 +30,14 @@ function createDomain(eventStore) {
         }
       }
       if (e.eventType === "kursupdate") {
+        // Gleichstand beim Datum (Tagesgenauigkeit) wird per seq aufgelöst — sonst gewinnt
+        // bei zwei Kursupdates am selben Tag immer das zuerst erfasste statt das neueste,
+        // dieselbe Regel wie in positionsverlaufAbfragen().
         const bisher = kurse.get(e.payload.wertpapierId);
-        if (!bisher || e.payload.datum > bisher.datum) kurse.set(e.payload.wertpapierId, e.payload);
+        const neuer = !bisher
+          || e.payload.datum > bisher.payload.datum
+          || (e.payload.datum === bisher.payload.datum && e.seq > bisher.seq);
+        if (neuer) kurse.set(e.payload.wertpapierId, e);
       }
     }
 
@@ -40,8 +46,8 @@ function createDomain(eventStore) {
     let kaufwertGesamt = 0;
     for (const [wertpapierId, agg] of kaeufe) {
       const kursupdate = kurse.get(wertpapierId);
-      const kurs = kursupdate ? kursupdate.kurs : null;
-      const kursDatum = kursupdate ? kursupdate.datum : null;
+      const kurs = kursupdate ? kursupdate.payload.kurs : null;
+      const kursDatum = kursupdate ? kursupdate.payload.datum : null;
       const wert = kurs != null ? agg.stueck * kurs : 0;
       const kaufwert = agg.kaufwertBekannt ? agg.kaufwertSumme : null;
       const kaufkurs = kaufwert != null ? kaufwert / agg.stueck : null; // Ø über alle Käufe
@@ -78,7 +84,16 @@ function createDomain(eventStore) {
       .map((e) => ({ eventType: e.eventType, ...e.payload }));
   }
 
-  return { kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen };
+  // Für Persistenz: die Domäne ist die einzige, die den Event-Store kennt, also läuft auch
+  // das Auslesen des kompletten Bestands über sie — reine Durchreichung, keine Berechnung.
+  function alleEreignisseAbfragen() {
+    return eventStore.query();
+  }
+
+  return {
+    kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen,
+    alleEreignisseAbfragen,
+  };
 }
 
 if (typeof module !== "undefined") {

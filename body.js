@@ -1,6 +1,11 @@
-// Body: kennt die Domäne (und später weitere Provider), nicht den Event-Store. Setzt
-// Domänen-Funktionen zu Workflows zusammen. Das Frontend kennt nur dieses Interface.
-function createBody(domain) {
+// Body: kennt die Domäne und weitere Provider (hier: Persistenz), nicht den Event-Store
+// selbst. Setzt Domänen-Funktionen zu Workflows zusammen. Das Frontend kennt nur dieses
+// Interface — insbesondere weiß es nichts davon, dass und wie erfasste Daten überleben.
+function createBody(domain, persistenz) {
+  function nachAenderungSpeichern() {
+    persistenz.speichern(domain.alleEreignisseAbfragen());
+  }
+
   // filter ist optional: { suchbegriff, typen }. Suchbegriff wird gegen den Namen geprüft
   // (Groß-/Kleinschreibung egal), typen ist eine Liste erlaubter Typ-Werte. Depotwert,
   // Kaufwert und Veränderung bleiben unverändert vom Filter — sie beschreiben weiterhin das
@@ -22,11 +27,13 @@ function createBody(domain) {
 
   function kaufErfassen(daten) {
     domain.kaufErfassen(daten);
+    nachAenderungSpeichern();
     return domain.positionenAbfragen();
   }
 
   function kursupdateErfassen(daten) {
     domain.kursupdateErfassen(daten);
+    nachAenderungSpeichern();
     return domain.positionenAbfragen();
   }
 
@@ -36,6 +43,7 @@ function createBody(domain) {
   function neuePositionErfassen({ wertpapierId, name, typ, stueck, kaufkurs, kurs, datum }) {
     domain.kaufErfassen({ wertpapierId, name, typ, stueck, kaufkurs, datum });
     domain.kursupdateErfassen({ wertpapierId, kurs, datum });
+    nachAenderungSpeichern();
     return domain.positionenAbfragen();
   }
 
@@ -43,7 +51,10 @@ function createBody(domain) {
     return domain.positionsverlaufAbfragen(wertpapierId);
   }
 
-  return { depotAbfragen, kaufErfassen, kursupdateErfassen, neuePositionErfassen, positionsverlaufAbfragen };
+  return {
+    depotAbfragen, kaufErfassen, kursupdateErfassen,
+    neuePositionErfassen, positionsverlaufAbfragen,
+  };
 }
 
 if (typeof module !== "undefined") {

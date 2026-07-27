@@ -1,0 +1,255 @@
+[
+  {
+    "seq": 1,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.041Z",
+    "payload": {
+      "wertpapierId": "LS9KF5",
+      "name": "Lang+Schwarz O.E. Index",
+      "typ": "Zertifikat",
+      "stueck": 1,
+      "kaufkurs": 373.57,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 2,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "EWG2LD",
+      "name": "Boerse Stuttg. Euwax-Gold",
+      "typ": "Zertifikat",
+      "stueck": 100,
+      "kaufkurs": 53.57,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 3,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "DWS0R4",
+      "name": "Arero-Der Weltfonds Inh.",
+      "typ": "Fonds",
+      "stueck": 10,
+      "kaufkurs": 211.26,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 4,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9GLD",
+      "name": "Lang+Schwarz O.E. Index",
+      "typ": "Zertifikat",
+      "stueck": 1,
+      "kaufkurs": 627.29,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 5,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2QBZ1",
+      "name": "ISVP.-IS.M.EES EOA",
+      "typ": "ETF",
+      "stueck": 68.476,
+      "kaufkurs": 11.1479,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 6,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9CHS",
+      "name": "Lang+Schwarz O.E. Index",
+      "typ": "Zertifikat",
+      "stueck": 1,
+      "kaufkurs": 315.97,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 7,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9BGR",
+      "name": "Lang+Schwarz O.E. Index",
+      "typ": "Zertifikat",
+      "stueck": 1,
+      "kaufkurs": 327.02,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 8,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9ETB",
+      "name": "Lang+Schwarz O.E. Index",
+      "typ": "Zertifikat",
+      "stueck": 1,
+      "kaufkurs": 428.3,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 9,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "722713",
+      "name": "Strategy A New DL-001",
+      "typ": "Aktie",
+      "stueck": 2,
+      "kaufkurs": 330.7,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 10,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2LQVD",
+      "name": "Ameria AG VNA ST ON PR.P.",
+      "typ": "Aktie",
+      "stueck": 1,
+      "kaufkurs": null,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 11,
+    "eventType": "kauf",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2NBP6",
+      "name": "Ameria AG VNA VZO ON PR.P",
+      "typ": "Aktie",
+      "stueck": 1,
+      "kaufkurs": null,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 12,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9KF5",
+      "kurs": 937.49,
+      "datum": "2026-07-24T11:12:25"
+    }
+  },
+  {
+    "seq": 13,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "EWG2LD",
+      "kurs": 117.36,
+      "datum": "2026-07-24T21:54:29"
+    }
+  },
+  {
+    "seq": 14,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "DWS0R4",
+      "kurs": 347,
+      "datum": "2026-07-24T22:47:48"
+    }
+  },
+  {
+    "seq": 15,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9GLD",
+      "kurs": 916.38,
+      "datum": "2026-07-24T08:06:11"
+    }
+  },
+  {
+    "seq": 16,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2QBZ1",
+      "kurs": 15.878,
+      "datum": "2026-07-24T17:35:56"
+    }
+  },
+  {
+    "seq": 17,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9CHS",
+      "kurs": 356.86,
+      "datum": "2026-07-24T08:06:21"
+    }
+  },
+  {
+    "seq": 18,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9BGR",
+      "kurs": 331.62,
+      "datum": "2026-07-24T13:16:55"
+    }
+  },
+  {
+    "seq": 19,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "LS9ETB",
+      "kurs": 415.81,
+      "datum": "2026-07-24T08:05:13"
+    }
+  },
+  {
+    "seq": 20,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "722713",
+      "kurs": 80.64,
+      "datum": "2026-07-24T22:02:45"
+    }
+  },
+  {
+    "seq": 21,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2LQVD",
+      "kurs": 0,
+      "datum": "2026-07-01"
+    }
+  },
+  {
+    "seq": 22,
+    "eventType": "kursupdate",
+    "timestamp": "2026-07-27T06:11:50.042Z",
+    "payload": {
+      "wertpapierId": "A2NBP6",
+      "kurs": 0,
+      "datum": "2026-07-01"
+    }
+  }
+]

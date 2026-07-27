@@ -49,3 +49,29 @@ Deno.test("query mit unbekannter wertpapierId liefert leeres Array", () => {
   const nichts = store.query({ wertpapierId: "UNBEKANNT" });
   if (nichts.length !== 0) throw new Error(`erwartet 0 Events, war ${nichts.length}`);
 });
+
+Deno.test("initialEvents bei der Konstruktion werden unverändert übernommen (seq/timestamp bleiben)", () => {
+  const vorhanden = [
+    { seq: 5, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
+    { seq: 9, eventType: "kursupdate", timestamp: "2020-01-02T00:00:00.000Z", payload: { wertpapierId: "A" } },
+  ];
+  const store = createEventStore(vorhanden);
+  const alle = store.query();
+  if (JSON.stringify(alle) !== JSON.stringify(vorhanden)) {
+    throw new Error("initialEvents müssen inklusive seq/timestamp identisch übernommen werden");
+  }
+});
+
+Deno.test("nächste seq nach initialEvents ist max(seq)+1, append() knüpft nahtlos an", () => {
+  const store = createEventStore([
+    { seq: 5, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
+  ]);
+  const neues = store.append("kursupdate", { wertpapierId: "A" });
+  if (neues.seq !== 6) throw new Error(`erwartet seq 6, war ${neues.seq}`);
+});
+
+Deno.test("ohne initialEvents beginnt seq bei 1", () => {
+  const store = createEventStore();
+  const e = store.append("kauf", { wertpapierId: "A" });
+  if (e.seq !== 1) throw new Error(`erwartet seq 1, war ${e.seq}`);
+});

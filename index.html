@@ -367,7 +367,7 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
       </button>
     </div>
-    <div class="meta">Peter Salz · 26.07.2026</div>
+    <div class="meta" id="heute-anzeige"></div>
   </div>
 
   <div class="hero">
@@ -411,10 +411,10 @@
     <div class="field">
       <label for="np-typ">Typ</label>
       <select id="np-typ" name="typ">
+        <option>Aktie</option>
+        <option>ETF</option>
         <option>Zertifikat</option>
         <option>Fonds</option>
-        <option>ETF</option>
-        <option>Aktie</option>
       </select>
     </div>
     <div class="field"><label for="np-stueck">Stück</label><input id="np-stueck" name="stueck" type="number" step="any" min="0" required></div>
@@ -460,54 +460,27 @@
      node:module createRequire() auch aus Deno-Tests nutzbar (siehe tests/). -->
 <script src="eventStore.js"></script>
 <script src="domain.js"></script>
+<script src="localStorageProvider.js"></script>
 <script src="body.js"></script>
 
 <script>
   // --- Komposition: der einzige Ort, an dem die Module zusammengesteckt werden ---
-  const eventStore = createEventStore();
+  // Kein Startbestand mehr: das Depot beginnt leer, außer der Browser hat schon einmal
+  // etwas gespeichert. Was vorher fest eingebacken war, steht jetzt in startbestand.json
+  // (Grundlage für den Import in einer späteren Stufe).
+  const persistenz = createLocalStorageProvider(localStorage, "depot-events");
+  const eventStore = createEventStore(persistenz.laden());
   const domain = createDomain(eventStore);
-  const body = createBody(domain);
-
-  // --- Startbestand laden ---
-  // Für "kauf" ist das Kaufdatum in der Quelle nicht überliefert -> angenommen: 1.7.2026.
-  // Für "kursupdate" ist das Datum in den Quelldaten vorhanden und wird übernommen; nur
-  // bei den beiden wertlosen Ameria-Positionen fehlt auch das, ebenfalls 1.7.2026 angenommen.
-  const ANGENOMMENES_DATUM = "2026-07-01";
-  const startbestand = [
-    { befehl: "kauf", wertpapierId: "LS9KF5", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 373.57, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "EWG2LD", name: "Boerse Stuttg. Euwax-Gold", typ: "Zertifikat", stueck: 100, kaufkurs: 53.57, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "DWS0R4", name: "Arero-Der Weltfonds Inh.", typ: "Fonds", stueck: 10, kaufkurs: 211.26, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "LS9GLD", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 627.29, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "A2QBZ1", name: "ISVP.-IS.M.EES EOA", typ: "ETF", stueck: 68.476, kaufkurs: 11.1479, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "LS9CHS", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 315.97, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "LS9BGR", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 327.02, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "LS9ETB", name: "Lang+Schwarz O.E. Index", typ: "Zertifikat", stueck: 1, kaufkurs: 428.30, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "722713", name: "Strategy A New DL-001", typ: "Aktie", stueck: 2, kaufkurs: 330.70, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "A2LQVD", name: "Ameria AG VNA ST ON PR.P.", typ: "Aktie", stueck: 1, kaufkurs: null, datum: ANGENOMMENES_DATUM },
-    { befehl: "kauf", wertpapierId: "A2NBP6", name: "Ameria AG VNA VZO ON PR.P", typ: "Aktie", stueck: 1, kaufkurs: null, datum: ANGENOMMENES_DATUM },
-
-    { befehl: "kursupdate", wertpapierId: "LS9KF5", kurs: 937.49, datum: "2026-07-24T11:12:25" },
-    { befehl: "kursupdate", wertpapierId: "EWG2LD", kurs: 117.36, datum: "2026-07-24T21:54:29" },
-    { befehl: "kursupdate", wertpapierId: "DWS0R4", kurs: 347.00, datum: "2026-07-24T22:47:48" },
-    { befehl: "kursupdate", wertpapierId: "LS9GLD", kurs: 916.38, datum: "2026-07-24T08:06:11" },
-    { befehl: "kursupdate", wertpapierId: "A2QBZ1", kurs: 15.878, datum: "2026-07-24T17:35:56" },
-    { befehl: "kursupdate", wertpapierId: "LS9CHS", kurs: 356.86, datum: "2026-07-24T08:06:21" },
-    { befehl: "kursupdate", wertpapierId: "LS9BGR", kurs: 331.62, datum: "2026-07-24T13:16:55" },
-    { befehl: "kursupdate", wertpapierId: "LS9ETB", kurs: 415.81, datum: "2026-07-24T08:05:13" },
-    { befehl: "kursupdate", wertpapierId: "722713", kurs: 80.64, datum: "2026-07-24T22:02:45" },
-    { befehl: "kursupdate", wertpapierId: "A2LQVD", kurs: 0, datum: ANGENOMMENES_DATUM },
-    { befehl: "kursupdate", wertpapierId: "A2NBP6", kurs: 0, datum: ANGENOMMENES_DATUM },
-  ];
-  for (const { befehl, ...daten } of startbestand) {
-    if (befehl === "kauf") domain.kaufErfassen(daten);
-    else domain.kursupdateErfassen(daten);
-  }
+  const body = createBody(domain, persistenz);
 </script>
 
 <script>
   // --- Frontend: alles HTML/DOM. Kennt nur `body`, nie die Domäne oder den Event-Store. ---
   const TYP_KLASSE = { "Zertifikat": "zert", "Fonds": "fonds", "ETF": "etf", "Aktie": "aktie" };
-  const HEUTE = "2026-07-26";
+  // Echtes "heute" statt eines festen Datums — es gibt keine feste Geschichte mehr, an die
+  // ein Datum gebunden wäre, das Depot gehört, wem auch immer gerade den Browser benutzt.
+  const jetzt = new Date();
+  const HEUTE = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, "0")}-${String(jetzt.getDate()).padStart(2, "0")}`;
   const aufgeklappt = new Set(); // welche Positionen ihren Verlauf zeigen, übersteht render()
 
   function fmtEUR(n) {
@@ -622,6 +595,8 @@
       container.appendChild(card);
     }
   }
+
+  document.getElementById("heute-anzeige").textContent = fmtDatum(HEUTE);
 
   const aktiverFilter = { suchbegriff: "", typen: [] };
   function neuRendern() {

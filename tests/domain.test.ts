@@ -64,6 +64,17 @@ Deno.test("ein Kursupdate mit früherem Datum überschreibt nicht das spätere",
   if (p.kurs !== 500) throw new Error(`erwartet weiterhin Kurs 500, war ${p.kurs}`);
 });
 
+Deno.test("bei zwei Kursupdates mit gleichem Datum gewinnt das zuletzt erfasste (per seq)", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-27" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 292.55, datum: "2026-07-27" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 297, datum: "2026-07-27" }); // gleicher Tag, später erfasst
+
+  const { positionen } = domain.positionenAbfragen();
+  const p = positionen[0];
+  if (p.kurs !== 297) throw new Error(`erwartet Kurs 297 (zuletzt erfasst), war ${p.kurs}`);
+});
+
 Deno.test("unbekannter Kaufkurs führt zu kaufwert=null statt einer erfundenen Zahl", () => {
   const domain = neueDomaene();
   domain.kaufErfassen({ wertpapierId: "A", name: "Wertloses Papier", typ: "Aktie", stueck: 1, kaufkurs: null, datum: "2026-07-01" });
@@ -101,4 +112,28 @@ Deno.test("positionsverlaufAbfragen für unbekannte wertpapierId liefert leeres 
   domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
   const verlauf = domain.positionsverlaufAbfragen("UNBEKANNT");
   if (verlauf.length !== 0) throw new Error(`erwartet leeres Array, war ${verlauf.length} Einträge`);
+});
+
+Deno.test("alleEreignisseAbfragen liefert die rohen Events unverändert", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+  const events = domain.alleEreignisseAbfragen();
+  if (events.length !== 2) throw new Error(`erwartet 2 Events, war ${events.length}`);
+  if (events[0].eventType !== "kauf" || events[1].eventType !== "kursupdate") {
+    throw new Error("Reihenfolge/Typ der exportierten Events stimmt nicht");
+  }
+});
+
+Deno.test("eine Domäne über einem mit initialEvents vorbefüllten Event-Store rechnet korrekt", () => {
+  const quelle = neueDomaene();
+  quelle.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 3, kaufkurs: 100, datum: "2026-07-01" });
+  quelle.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-10" });
+  const exportiert = quelle.alleEreignisseAbfragen();
+
+  // Simuliert einen Neustart: neuer Event-Store, aber gleich mit dem alten Bestand geboren.
+  const ziel = createDomain(createEventStore(exportiert));
+  const { positionen } = ziel.positionenAbfragen();
+  if (positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${positionen.length}`);
+  if (positionen[0].wert !== 450) throw new Error(`erwartet wert 450, war ${positionen[0].wert}`);
 });
