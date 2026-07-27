@@ -1,10 +1,18 @@
 // Domäne: kennt den Event-Store, kapselt den App-State. Commands erzeugen Events,
 // Queries projizieren Events zu einem Modell. Keine Formatierung, keine Darstellung.
-function createDomain(eventStore) {
+export function createDomain(eventStore) {
+  // name, typ und broker beschreiben die Position und kommen nur beim ersten Kauf mit — ein
+  // Nachkauf lässt sie weg, seine Position steht ja schon. kaufkurs fehlt, wo er unbekannt
+  // ist (dann bleibt die Position ohne Kaufwert, statt einen erfundenen zu bekommen).
+  /**
+   * @param {{ wertpapierId: string, name?: string, typ?: string, broker?: string | null,
+   *           stueck: number, kaufkurs?: number | null, datum: string }} kauf
+   */
   function kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum }) {
     eventStore.append("kauf", { wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
   }
 
+  /** @param {{ wertpapierId: string, kurs: number, datum: string }} kursupdate */
   function kursupdateErfassen({ wertpapierId, kurs, datum }) {
     eventStore.append("kursupdate", { wertpapierId, kurs, datum });
   }
@@ -59,6 +67,7 @@ function createDomain(eventStore) {
       positionen.push({
         wertpapierId: agg.wertpapierId, name: agg.name, typ: agg.typ, broker: agg.broker, stueck: agg.stueck,
         wert, kurs, kursDatum, kaufwert, kaufkurs, diffAbs, diffPct,
+        anteilAmDepot: 0, // steht erst fest, wenn der Depotwert komplett ist (siehe unten)
       });
       depotwert += wert;
       kaufwertGesamt += kaufwert ?? 0;
@@ -77,6 +86,7 @@ function createDomain(eventStore) {
     return { depotwert, kaufwertGesamt, veraenderungAbs, veraenderungPct, positionen, bekannteBroker };
   }
 
+  /** @param {{ wertpapierId: string, broker?: string | null }} position */
   function positionsverlaufAbfragen({ wertpapierId, broker }) {
     // Umgekehrt chronologisch: neuestes Ereignis zuerst (nach fachlichem Datum, bei
     // Gleichstand nach Erfassungsreihenfolge). Kauf-Ereignisse gehören nur zum Verlauf, wenn
@@ -93,22 +103,19 @@ function createDomain(eventStore) {
   }
 
   // Die Domäne verantwortet Änderung und Auslesen des Zustands — also auch den Extremfall:
-  // den gesamten Bestand ersetzen bzw. ihn vollständig herausgeben. Woher die Ereignisse
-  // stammen oder wohin sie gehen, weiß sie dabei nicht; das orchestriert der Body.
+  // den gesamten Bestand ersetzen bzw. ihn vollständig herausgeben. Das braucht es für den
+  // Im- und Export. Ob dabei etwas gespeichert wird, ist Sache des Event-Store; die Domäne
+  // erfährt davon nichts.
   function initialize(events) {
     eventStore.overwrite(events);
   }
 
   function dump() {
-    return eventStore.replayAll();
+    return eventStore.query();
   }
 
   return {
     kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen,
     initialize, dump,
   };
-}
-
-if (typeof module !== "undefined") {
-  module.exports = { createDomain };
 }

@@ -1,7 +1,5 @@
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { createEventStore } = require("../eventStore.js");
-const { createDomain } = require("../domain.js");
+import { createEventStore } from "../../server/eventStore.js";
+import { createDomain } from "../../server/domain.js";
 
 function neueDomaene() {
   return createDomain(createEventStore());
@@ -64,7 +62,7 @@ Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Posit
   if (p.wert !== 1200) throw new Error(`erwartet wert 1200, war ${p.wert}`);
   if (p.kaufwert !== 1000) throw new Error(`erwartet kaufwert 1000, war ${p.kaufwert}`);
   if (p.diffAbs !== 200) throw new Error(`erwartet diffAbs 200, war ${p.diffAbs}`);
-  if (Math.abs(p.diffPct - 20) > 1e-9) throw new Error(`erwartet diffPct 20, war ${p.diffPct}`);
+  if (Math.abs(p.diffPct! - 20) > 1e-9) throw new Error(`erwartet diffPct 20, war ${p.diffPct}`);
   if (depotwert !== 1200) throw new Error(`erwartet depotwert 1200, war ${depotwert}`);
   if (kaufwertGesamt !== 1000) throw new Error(`erwartet kaufwertGesamt 1000, war ${kaufwertGesamt}`);
 });
@@ -80,7 +78,7 @@ Deno.test("anteilAmDepot mehrerer Positionen summiert sich zu 100 Prozent", () =
   const summe = positionen.reduce((s: number, p: any) => s + p.anteilAmDepot, 0);
   if (Math.abs(summe - 100) > 1e-9) throw new Error(`erwartet Summe 100, war ${summe}`);
 
-  const a = positionen.find((p: any) => p.wertpapierId === "A");
+  const a = positionen.find((p: any) => p.wertpapierId === "A")!;
   if (Math.abs(a.anteilAmDepot - 25) > 1e-9) throw new Error(`erwartet 25% für A, war ${a.anteilAmDepot}`);
 });
 

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mein Depot</title>
+<style>
+  :root {
+    --ink: #181A2A;
+    --ink-muted: #6B6D80;
+    --ink-faint: #8B8DA0;
+    --border: #E7E7EF;
+    --track: #F3F3F8;
+    --green: #0F9D58;
+    --red: #DC2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background: #F4F4F7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(24,26,42,0.06);
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .page-header .meta {
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .hero-card {
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .hero-card.wert { background: #EEF0FF; }
+  .hero-card.veraend { background: #E7F8EF; }
+  .hero-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .hero-card.wert .hero-label { color: #4F46E5; }
+  .hero-card.veraend .hero-label { color: var(--green); }
+  .hero-value {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .hero-card.veraend .hero-value { color: var(--green); }
+  .hero-sub {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+    opacity: 0.75;
+  }
+  .hero-card.wert .hero-sub { color: #6266C4; }
+  .hero-card.veraend .hero-sub { color: var(--green); }
+  .positions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card.dimmed { opacity: 0.5; }
+  .card-strip { height: 4px; }
+  .strip-zert { background: #D97706; }
+  .strip-fonds { background: #7C3AED; }
+  .strip-etf { background: #2563EB; }
+  .strip-aktie { background: #DB2777; }
+  .card-body { padding: 12px; }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .badge-zert { background: #FDF1DC; color: #8A5A0A; }
+  .badge-fonds { background: #F1E9FD; color: #6226C4; }
+  .badge-etf { background: #E5EEFF; color: #1D4FBE; }
+  .badge-aktie { background: #FCE7F3; color: #A61E5E; }
+  .card-top-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .card-broker {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 500;
+    background: var(--track);
+    color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wkn {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--ink-faint);
+    text-decoration: none;
+  }
+  .wkn:hover { text-decoration: underline; }
+  .card-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .card-name:hover { color: #4F46E5; }
+  .verlauf-chevron {
+    flex-shrink: 0;
+    color: var(--ink-faint);
+    transition: transform 0.15s ease;
+  }
+  .card.aufgeklappt .verlauf-chevron { transform: rotate(180deg); }
+  .verlauf {
+    display: none;
+    margin-bottom: 8px;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--border);
+  }
+  .card.aufgeklappt .verlauf { display: block; }
+  .verlauf-eintrag {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    padding: 2px 0;
+  }
+  .verlauf-eintrag .verlauf-art { color: var(--ink-muted); }
+  .card-value-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .card-value {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .card-value-detail {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-faint);
+  }
+  .card-sub-row {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .bar-track {
+    height: 9px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .bar-track.neg { justify-content: flex-end; }
+  .bar {
+    background: var(--green);
+  }
+  .bar.neg { background: var(--red); }
+  .card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pct { font-size: 12px; font-weight: 500; color: var(--green); }
+  .pct.neg { color: var(--red); }
+  .pct.zero { color: var(--ink-faint); }
+  .share {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .share svg { flex-shrink: 0; }
+
+  .filter-bar {
+    margin-bottom: 16px;
+  }
+  .filter-zeile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .filter-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+    width: 92px;
+  }
+  .filter-typen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-suche {
+    width: 100%;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .typ-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--border);
+    background: #FFFFFF;
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .typ-chip:hover { background: var(--track); }
+  .typ-chip.active.chip-aktie { background: #FCE7F3; color: #A61E5E; border-color: transparent; }
+  .typ-chip.active.chip-etf { background: #E5EEFF; color: #1D4FBE; border-color: transparent; }
+  .typ-chip.active.chip-zert { background: #FDF1DC; color: #8A5A0A; border-color: transparent; }
+  .typ-chip.active.chip-fonds { background: #F1E9FD; color: #6226C4; border-color: transparent; }
+  .broker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .broker-chips:empty { display: none; }
+  .broker-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--border);
+    background: #FFFFFF;
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .broker-chip:hover { background: var(--track); }
+  .broker-chip.active { background: var(--ink); color: #FFFFFF; border-color: transparent; }
+
+  .page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .page-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0.5px solid var(--border);
+    border-radius: 999px;
+    background: #FFFFFF;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .add-btn:hover { background: var(--track); color: var(--ink); }
+  .card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-add-wrap {
+    position: relative;
+  }
+  .card-add-wrap .add-btn { width: 18px; height: 18px; }
+  .add-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 24px;
+    z-index: 10;
+    background: #FFFFFF;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(24,26,42,0.12);
+    min-width: 160px;
+    overflow: hidden;
+  }
+  .card-add-wrap.open .add-menu { display: block; }
+  .add-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .add-menu button:hover { background: var(--track); }
+
+  dialog {
+    border: none;
+    border-radius: 16px;
+    padding: 24px;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    box-shadow: 0 8px 32px rgba(24,26,42,0.18);
+  }
+  dialog::backdrop { background: rgba(24,26,42,0.35); }
+  dialog h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 4px;
+  }
+  .field input, .field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .field-info {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 12px;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .page-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .page-nav-link {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .page-nav-link:hover { background: var(--track); }
+  .page-nav-link.active { background: var(--ink); color: #FFFFFF; }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .dashboard-card {
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .dashboard-card h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .chart-leer {
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .chart-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .chart-donut { flex-shrink: 0; }
+  .chart-legende {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 120px;
+  }
+  .chart-legende-zeile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .chart-legende-punkt {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .chart-legende-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+  }
+  .chart-legende-wert {
+    font-weight: 500;
+    color: var(--ink);
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .chart-nebenwert {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    white-space: normal;
+  }
+  .chart-nebenwert-pct.pos { color: var(--green); }
+  .chart-nebenwert-pct.neg { color: var(--red); }
+  .chart-zeilen {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chart-zeile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px 128px;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .chart-zeile-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-muted);
+  }
+  .chart-zeile-typ {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    margin-left: 4px;
+  }
+  .chart-zeile-wert {
+    text-align: right;
+    font-weight: 500;
+  }
+  .chart-zeile-wert.neg { color: var(--red); }
+  .chart-zeile-wert.pos { color: var(--green); }
+  .chart-bar { fill: var(--ink); }
+  .chart-bar.pos { fill: var(--green); }
+  .chart-bar.neg { fill: var(--red); }
+  .chart-mittellinie { stroke: var(--border); }
+
+  .btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-secondary {
+    border: 0.5px solid var(--border);
+    background: #FFFFFF;
+    color: var(--ink);
+  }
+  .btn-secondary:hover { background: var(--track); }
+  .btn-primary {
+    border: none;
+    background: var(--ink);
+    color: #FFFFFF;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Mein Depot</h1>
+      <button type="button" class="add-btn" id="btn-neue-position" aria-label="Neue Position erfassen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </button>
+    </div>
+    <div class="page-header-right">
+      <button type="button" class="add-btn" id="btn-import" aria-label="Ereignisse aus Datei laden" title="Aus Datei laden">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+      </button>
+      <button type="button" class="add-btn" id="btn-export" aria-label="Ereignisse in Datei speichern" title="In Datei speichern">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      </button>
+      <div class="meta" id="heute-anzeige"></div>
+    </div>
+  </div>
+
+  <nav class="page-nav">
+    <a href="#/positionen" class="page-nav-link" data-route="positionen">Positionen</a>
+    <a href="#/dashboard" class="page-nav-link" data-route="dashboard">Dashboard</a>
+  </nav>
+
+  <section id="view-positionen">
+    <div class="hero">
+      <div class="hero-card wert">
+        <div class="hero-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+          <span>Depotwert</span>
+        </div>
+        <div class="hero-value" id="hero-wert"></div>
+        <div class="hero-sub" id="hero-kaufwert"></div>
+      </div>
+      <div class="hero-card veraend">
+        <div class="hero-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <span>Veränderung</span>
+        </div>
+        <div class="hero-value" id="hero-veraenderung-pct"></div>
+        <div class="hero-sub" id="hero-veraenderung-abs"></div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" class="filter-suche" id="filter-suche" placeholder="Suche nach Name…">
+      <div class="filter-zeile">
+        <span class="filter-label">Positionstyp:</span>
+        <div class="filter-typen">
+          <button type="button" class="typ-chip chip-aktie" data-typ="Aktie">Aktie</button>
+          <button type="button" class="typ-chip chip-etf" data-typ="ETF">ETF</button>
+          <button type="button" class="typ-chip chip-zert" data-typ="Zertifikat">Zertifikat</button>
+          <button type="button" class="typ-chip chip-fonds" data-typ="Fonds">Fonds</button>
+        </div>
+      </div>
+      <div class="filter-zeile">
+        <span class="filter-label">Broker:</span>
+        <div class="filter-typen" id="filter-broker-chips"></div>
+      </div>
+    </div>
+
+    <div class="positions" id="positions"></div>
+  </section>
+
+  <section id="view-dashboard" hidden>
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <h2>Zusammensetzung nach Typ</h2>
+        <div id="chart-typ"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Zusammensetzung nach Broker</h2>
+        <div id="chart-broker"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Gewinner &amp; Verlierer</h2>
+        <div id="chart-gewinner-verlierer"></div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Konzentration</h2>
+        <div id="chart-konzentration"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<dialog id="dialog-neue-position">
+  <form id="form-neue-position">
+    <h2>Neue Position erfassen</h2>
+    <div class="field"><label for="np-wkn">WKN</label><input id="np-wkn" name="wkn" type="text" required></div>
+    <div class="field"><label for="np-name">Name</label><input id="np-name" name="name" type="text" required></div>
+    <div class="field">
+      <label for="np-typ">Typ</label>
+      <select id="np-typ" name="typ">
+        <option>Aktie</option>
+        <option>ETF</option>
+        <option>Zertifikat</option>
+        <option>Fonds</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Broker (optional)</label>
+      <div class="broker-chips" id="np-broker-chips"></div>
+      <input type="text" id="np-broker-neu" placeholder="Neuer Broker…">
+    </div>
+    <div class="field"><label for="np-stueck">Stück</label><input id="np-stueck" name="stueck" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-kaufkurs">Kaufkurs (€)</label><input id="np-kaufkurs" name="kaufkurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-kurs">Aktueller Kurs (€)</label><input id="np-kurs" name="kurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="np-datum">Datum</label><input id="np-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-kauf">
+  <form id="form-kauf">
+    <h2>Kauf erfassen</h2>
+    <div class="field-info" id="kauf-position-info"></div>
+    <div class="field"><label for="k-stueck">Stück</label><input id="k-stueck" name="stueck" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="k-kaufkurs">Kaufkurs (€)</label><input id="k-kaufkurs" name="kaufkurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="k-datum">Datum</label><input id="k-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-kursupdate">
+  <form id="form-kursupdate">
+    <h2>Kursupdate erfassen</h2>
+    <div class="field-info" id="kursupdate-position-info"></div>
+    <div class="field"><label for="ku-kurs">Kurs (€)</label><input id="ku-kurs" name="kurs" type="number" step="any" min="0" required></div>
+    <div class="field"><label for="ku-datum">Datum</label><input id="ku-datum" name="datum" type="date" required></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Abbrechen</button>
+      <button type="submit" class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Module: echte ES-Module. Der Grund für das frühere klassische <script src> — die Seite
+     musste per Doppelklick unter file:// laufen — ist mit dem Server entfallen. Die App wird
+     jetzt ausgeliefert, nicht geöffnet. -->
+<script type="module">
+  // --- Komposition: der einzige Ort, an dem die Client-Module zusammengesteckt werden.
+  // Der API-Schlüssel steht nicht im Quelltext, sondern wird vom Server beim Ausliefern
+  // dieser Seite hineingeschrieben (siehe server/portal.js). ---
+  import { createBackendProxyProvider } from "./backendProxyProvider.js";
+  import { createImExportProvider } from "./imExportProvider.js";
+  import { createBody } from "./body.js";
+  import { createPortal } from "./portal.js";
+  import * as domain from "./domain.js";
+
+  const backend = createBackendProxyProvider("", window.__API_KEY__);
+  const imExport = createImExportProvider();
+  const body = createBody(backend, imExport, domain);
+  const portal = createPortal(body);
+
+  portal.starten();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 // Technologiefeinheit, die im Browser nun mal DOM ist — Dateiauswahl über ein <input>,
 // Download über einen <a>-Klick. Bewusst trivial gehalten: ein manueller Test zeigt sofort,
 // ob es funktioniert. In automatisierten Tests wird dieser Provider komplett gemockt.
-function createImExportProvider() {
+export function createImExportProvider() {
   // Öffnet den Dateidialog und liefert die gelesenen Ereignisse.
   // null, wenn der Nutzer abbricht.
   function importieren() {
@@ -37,8 +37,4 @@ function createImExportProvider() {
   }
 
   return { import: importieren, export: exportieren };
-}
-
-if (typeof module !== "undefined") {
-  module.exports = { createImExportProvider };
 }
