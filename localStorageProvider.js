@@ -1,18 +1,17 @@
-// Provider: kapselt die Ressource "Browser-Speicher". Bekommt das Storage-Objekt injiziert
-// (im Browser localStorage, in Tests ein einfaches Fake) statt es selbst zu kennen — genau wie
-// der Event-Store nichts von Domäne oder UI weiß, weiß dieser Provider nichts von Events oder
-// Domänenlogik. Er speichert und lädt schlicht eine Liste, wörtlich als JSON.
+// xProvider (External-Resource-Provider): kapselt die Ressource "Browser-Speicher". Kennt
+// weder Domäne noch Ereignis-Semantik — er legt eine Liste ab und gibt sie wieder heraus.
+// Das Storage-Objekt wird injiziert (im Browser localStorage, in Tests ein Fake).
 function createLocalStorageProvider(storage, schluessel) {
-  function laden() {
+  function get() {
     const roh = storage.getItem(schluessel);
     return roh ? JSON.parse(roh) : [];
   }
 
-  function speichern(daten) {
+  function set(daten) {
     storage.setItem(schluessel, JSON.stringify(daten));
   }
 
-  return { laden, speichern };
+  return { get, set };
 }
 
 if (typeof module !== "undefined") {

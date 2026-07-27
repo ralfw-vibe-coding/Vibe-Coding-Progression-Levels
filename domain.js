@@ -84,15 +84,20 @@ function createDomain(eventStore) {
       .map((e) => ({ eventType: e.eventType, ...e.payload }));
   }
 
-  // Für Persistenz: die Domäne ist die einzige, die den Event-Store kennt, also läuft auch
-  // das Auslesen des kompletten Bestands über sie — reine Durchreichung, keine Berechnung.
-  function alleEreignisseAbfragen() {
-    return eventStore.query();
+  // Die Domäne verantwortet Änderung und Auslesen des Zustands — also auch den Extremfall:
+  // den gesamten Bestand ersetzen bzw. ihn vollständig herausgeben. Woher die Ereignisse
+  // stammen oder wohin sie gehen, weiß sie dabei nicht; das orchestriert der Body.
+  function initialize(events) {
+    eventStore.overwrite(events);
+  }
+
+  function dump() {
+    return eventStore.replayAll();
   }
 
   return {
     kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen,
-    alleEreignisseAbfragen,
+    initialize, dump,
   };
 }
 

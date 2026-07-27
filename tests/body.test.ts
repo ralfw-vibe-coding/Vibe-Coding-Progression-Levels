@@ -14,12 +14,23 @@ function fakeStorage() {
   };
 }
 
-// Spiegelt die Komposition in index.html: Anfangsbestand wird aus dem Speicher gelesen und
-// dem Event-Store bei der Konstruktion mitgegeben, nicht nachträglich geladen.
-function neuerBody(storage = fakeStorage()) {
-  const persistenz = createLocalStorageProvider(storage, "depot-events");
-  const eventStore = createEventStore(persistenz.laden());
-  return createBody(createDomain(eventStore), persistenz);
+// Der ImExport-Provider kapselt Browser-Technologie (Dateidialog, Download) und wird
+// deshalb als Ganzes gemockt — nicht seine Innereien.
+function fakeImExport(zuImportieren: any = null) {
+  const exportiert: any[] = [];
+  return {
+    import: () => Promise.resolve(zuImportieren),
+    export: (events: any) => { exportiert.push(events); },
+    exportiert,
+  };
+}
+
+// Spiegelt die Komposition in index.html.
+function neuerBody(storage = fakeStorage(), imExport: any = fakeImExport()) {
+  const speicher = createLocalStorageProvider(storage, "depot-events");
+  const body = createBody(createDomain(createEventStore()), speicher, imExport);
+  body.initialisieren();
+  return body;
 }
 
 Deno.test("neuePositionErfassen legt Kauf und Kursupdate zusammen an", () => {
@@ -80,6 +91,55 @@ Deno.test("ein neu konstruierter Body mit demselben Speicher setzt den Bestand f
   const modell = zweiterBody.depotAbfragen();
   if (modell.positionen.length !== 1) throw new Error(`erwartet 1 wiederhergestellte Position, war ${modell.positionen.length}`);
   if (modell.depotwert !== 240) throw new Error(`erwartet depotwert 240, war ${modell.depotwert}`);
+});
+
+Deno.test("exportieren reicht den vollständigen Bestand an den ImExport-Provider", () => {
+  const imExport = fakeImExport();
+  const body = neuerBody(fakeStorage(), imExport);
+  body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+
+  body.exportieren();
+  if (imExport.exportiert.length !== 1) throw new Error("erwartet genau einen Export-Aufruf");
+  if (imExport.exportiert[0].length !== 2) {
+    throw new Error(`erwartet 2 exportierte Ereignisse, war ${imExport.exportiert[0].length}`);
+  }
+});
+
+Deno.test("importieren ersetzt den Zustand und gibt das neue Modell zurück", async () => {
+  const importierteEvents = [
+    { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", name: "Import AG", typ: "Aktie", stueck: 5, kaufkurs: 10, datum: "2026-07-01" } },
+    { seq: 2, eventType: "kursupdate", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", kurs: 20, datum: "2026-07-02" } },
+  ];
+  const body = neuerBody(fakeStorage(), fakeImExport(importierteEvents));
+  body.neuePositionErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 1, kurs: 1, datum: "2026-07-01" });
+
+  const modell = await body.importieren();
+  if (modell.positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${modell.positionen.length}`);
+  if (modell.positionen[0].wertpapierId !== "X") throw new Error("alter Bestand darf nicht überleben");
+  if (modell.depotwert !== 100) throw new Error(`erwartet depotwert 100, war ${modell.depotwert}`);
+});
+
+Deno.test("importieren schreibt die neuen Ereignisse auch in den Browser-Speicher", async () => {
+  const storage = fakeStorage();
+  const importierteEvents = [
+    { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", name: "Import AG", typ: "Aktie", stueck: 5, kaufkurs: 10, datum: "2026-07-01" } },
+  ];
+  const body = neuerBody(storage, fakeImExport(importierteEvents));
+  await body.importieren();
+
+  const gespeichert = JSON.parse(storage.getItem("depot-events")!);
+  if (JSON.stringify(gespeichert) !== JSON.stringify(importierteEvents)) {
+    throw new Error("Browser-Speicher muss nach dem Import den importierten Bestand enthalten");
+  }
+});
+
+Deno.test("ein abgebrochener Dateidialog lässt den Zustand unangetastet", async () => {
+  const body = neuerBody(fakeStorage(), fakeImExport(null));
+  body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
+
+  const ergebnis = await body.importieren();
+  if (ergebnis !== null) throw new Error("erwartet null bei abgebrochenem Dialog");
+  if (body.depotAbfragen().positionen.length !== 1) throw new Error("bisheriger Bestand muss erhalten bleiben");
 });
 
 Deno.test("ohne gespeicherte Daten beginnt ein neu konstruierter Body leer", () => {

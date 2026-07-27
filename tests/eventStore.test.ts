@@ -50,27 +50,60 @@ Deno.test("query mit unbekannter wertpapierId liefert leeres Array", () => {
   if (nichts.length !== 0) throw new Error(`erwartet 0 Events, war ${nichts.length}`);
 });
 
-Deno.test("initialEvents bei der Konstruktion werden unverändert übernommen (seq/timestamp bleiben)", () => {
+Deno.test("overwrite übernimmt Ereignisse unverändert (seq/timestamp bleiben)", () => {
   const vorhanden = [
     { seq: 5, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
     { seq: 9, eventType: "kursupdate", timestamp: "2020-01-02T00:00:00.000Z", payload: { wertpapierId: "A" } },
   ];
-  const store = createEventStore(vorhanden);
-  const alle = store.query();
-  if (JSON.stringify(alle) !== JSON.stringify(vorhanden)) {
-    throw new Error("initialEvents müssen inklusive seq/timestamp identisch übernommen werden");
+  const store = createEventStore();
+  store.overwrite(vorhanden);
+  if (JSON.stringify(store.replayAll()) !== JSON.stringify(vorhanden)) {
+    throw new Error("overwrite muss inklusive seq/timestamp identisch übernehmen");
   }
 });
 
-Deno.test("nächste seq nach initialEvents ist max(seq)+1, append() knüpft nahtlos an", () => {
-  const store = createEventStore([
+Deno.test("nächste seq nach overwrite ist max(seq)+1, append() knüpft nahtlos an", () => {
+  const store = createEventStore();
+  store.overwrite([
     { seq: 5, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
   ]);
   const neues = store.append("kursupdate", { wertpapierId: "A" });
   if (neues.seq !== 6) throw new Error(`erwartet seq 6, war ${neues.seq}`);
 });
 
-Deno.test("ohne initialEvents beginnt seq bei 1", () => {
+Deno.test("overwrite ersetzt den bisherigen Bestand vollständig, hängt nicht an", () => {
+  const store = createEventStore();
+  store.append("kauf", { wertpapierId: "ALT" });
+  store.overwrite([
+    { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU" } },
+  ]);
+  const alle = store.replayAll();
+  if (alle.length !== 1 || alle[0].payload.wertpapierId !== "NEU") {
+    throw new Error("overwrite muss den alten Bestand ersetzen");
+  }
+});
+
+Deno.test("overwrite mit leerer Liste leert den Store", () => {
+  const store = createEventStore();
+  store.append("kauf", { wertpapierId: "A" });
+  store.overwrite([]);
+  if (store.replayAll().length !== 0) throw new Error("erwartet leeren Store");
+  const neues = store.append("kauf", { wertpapierId: "B" });
+  if (neues.seq !== 1) throw new Error(`erwartet seq 1 nach Leerung, war ${neues.seq}`);
+});
+
+Deno.test("replayAll liefert den vollständigen Bestand in Aufzeichnungsreihenfolge", () => {
+  const store = createEventStore();
+  store.append("kauf", { wertpapierId: "A" });
+  store.append("kursupdate", { wertpapierId: "B" });
+  const alle = store.replayAll();
+  if (alle.length !== 2) throw new Error(`erwartet 2 Ereignisse, war ${alle.length}`);
+  if (alle[0].eventType !== "kauf" || alle[1].eventType !== "kursupdate") {
+    throw new Error("Reihenfolge stimmt nicht mit der Aufzeichnung überein");
+  }
+});
+
+Deno.test("ein frischer Store beginnt bei seq 1", () => {
   const store = createEventStore();
   const e = store.append("kauf", { wertpapierId: "A" });
   if (e.seq !== 1) throw new Error(`erwartet seq 1, war ${e.seq}`);

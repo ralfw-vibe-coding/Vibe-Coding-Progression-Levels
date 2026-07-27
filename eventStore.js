@@ -1,9 +1,9 @@
-// Provider: kapselt die Ressource "Append-only Event-Log". Kennt weder Domäne noch UI, und
-// nichts darüber, woher sein Anfangsbestand kommt oder wohin Events am Ende gehen — das ist
-// Sache des Aufrufers. Nach der Konstruktion lässt er sich nur noch erweitern, nie ersetzen.
-function createEventStore(initialEvents = []) {
-  const events = [...initialEvents];
-  let naechsteSeq = events.reduce((max, e) => Math.max(max, e.seq), 0) + 1;
+// dProvider (Domain-Provider): das Medium, in dem der Zustand als Ereignisse aufgezeichnet
+// wird. Nur die Domäne kennt ihn. Er weiß nichts darüber, woher Ereignisse kommen oder wohin
+// sie gehen — nur, wie man sie festhält, ausliest und im Ganzen ersetzt.
+function createEventStore() {
+  let events = [];
+  let naechsteSeq = 1;
 
   function append(eventType, payload) {
     const event = {
@@ -21,7 +21,19 @@ function createEventStore(initialEvents = []) {
     return events.filter((e) => e.payload.wertpapierId === filter.wertpapierId);
   }
 
-  return { append, query };
+  // Ersetzt den gesamten Bestand. seq und timestamp der übergebenen Ereignisse bleiben
+  // unverändert — sie wurden früher schon einmal vergeben und sollen es bleiben.
+  function overwrite(neueEvents) {
+    events = neueEvents.slice();
+    naechsteSeq = events.reduce((max, e) => Math.max(max, e.seq), 0) + 1;
+  }
+
+  // Der vollständige Bestand, roh und in Aufzeichnungsreihenfolge.
+  function replayAll() {
+    return events.slice();
+  }
+
+  return { append, query, overwrite, replayAll };
 }
 
 if (typeof module !== "undefined") {

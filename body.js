@@ -1,9 +1,14 @@
-// Body: kennt die Domäne und weitere Provider (hier: Persistenz), nicht den Event-Store
-// selbst. Setzt Domänen-Funktionen zu Workflows zusammen. Das Frontend kennt nur dieses
-// Interface — insbesondere weiß es nichts davon, dass und wie erfasste Daten überleben.
-function createBody(domain, persistenz) {
-  function nachAenderungSpeichern() {
-    persistenz.speichern(domain.alleEreignisseAbfragen());
+// Body: kennt die Domäne und die xProvider (Browser-Speicher, Datei-Im-/Export), nie den
+// Event-Store. Er orchestriert das Zusammenspiel — die Domäne weiß nichts von Speicherung,
+// die Provider nichts von Fachlichkeit. Das Frontend kennt nur dieses Interface.
+function createBody(domain, speicher, imExport) {
+  function zustandSichern() {
+    speicher.set(domain.dump());
+  }
+
+  // Einmal beim Laden der Seite: was zuletzt im Browser lag, wird zum Zustand der Domäne.
+  function initialisieren() {
+    domain.initialize(speicher.get());
   }
 
   // filter ist optional: { suchbegriff, typen }. Suchbegriff wird gegen den Namen geprüft
@@ -27,13 +32,13 @@ function createBody(domain, persistenz) {
 
   function kaufErfassen(daten) {
     domain.kaufErfassen(daten);
-    nachAenderungSpeichern();
+    zustandSichern();
     return domain.positionenAbfragen();
   }
 
   function kursupdateErfassen(daten) {
     domain.kursupdateErfassen(daten);
-    nachAenderungSpeichern();
+    zustandSichern();
     return domain.positionenAbfragen();
   }
 
@@ -43,7 +48,7 @@ function createBody(domain, persistenz) {
   function neuePositionErfassen({ wertpapierId, name, typ, stueck, kaufkurs, kurs, datum }) {
     domain.kaufErfassen({ wertpapierId, name, typ, stueck, kaufkurs, datum });
     domain.kursupdateErfassen({ wertpapierId, kurs, datum });
-    nachAenderungSpeichern();
+    zustandSichern();
     return domain.positionenAbfragen();
   }
 
@@ -51,9 +56,24 @@ function createBody(domain, persistenz) {
     return domain.positionsverlaufAbfragen(wertpapierId);
   }
 
+  function exportieren() {
+    imExport.export(domain.dump());
+  }
+
+  // Importierte Ereignisse ersetzen den bisherigen Zustand vollständig — und werden sofort
+  // zum neuen Inhalt des Browser-Speichers, damit beides wieder deckungsgleich ist.
+  // Gibt null zurück, wenn der Nutzer den Dateidialog abbricht.
+  async function importieren() {
+    const events = await imExport.import();
+    if (!events) return null;
+    domain.initialize(events);
+    zustandSichern();
+    return domain.positionenAbfragen();
+  }
+
   return {
-    depotAbfragen, kaufErfassen, kursupdateErfassen,
-    neuePositionErfassen, positionsverlaufAbfragen,
+    initialisieren, depotAbfragen, kaufErfassen, kursupdateErfassen,
+    neuePositionErfassen, positionsverlaufAbfragen, exportieren, importieren,
   };
 }
 

@@ -11,19 +11,19 @@ function fakeStorage() {
   };
 }
 
-Deno.test("laden ohne zuvor Gespeichertes liefert ein leeres Array", () => {
+Deno.test("get ohne zuvor Gespeichertes liefert ein leeres Array", () => {
   const provider = createLocalStorageProvider(fakeStorage(), "test-schluessel");
-  const ergebnis = provider.laden();
+  const ergebnis = provider.get();
   if (!Array.isArray(ergebnis) || ergebnis.length !== 0) {
-    throw new Error("erwartet leeres Array ohne vorherige speichern()-Aufrufe");
+    throw new Error("erwartet leeres Array ohne vorherige set()-Aufrufe");
   }
 });
 
-Deno.test("speichern und laden geben denselben Inhalt zurück", () => {
+Deno.test("set und get geben denselben Inhalt zurück", () => {
   const provider = createLocalStorageProvider(fakeStorage(), "test-schluessel");
   const daten = [{ seq: 1, eventType: "kauf", payload: { wertpapierId: "A" } }];
-  provider.speichern(daten);
-  const geladen = provider.laden();
+  provider.set(daten);
+  const geladen = provider.get();
   if (JSON.stringify(geladen) !== JSON.stringify(daten)) {
     throw new Error("geladene Daten weichen von den gespeicherten ab");
   }
@@ -33,9 +33,9 @@ Deno.test("zwei Provider mit unterschiedlichem Schlüssel im selben Storage stö
   const storage = fakeStorage();
   const a = createLocalStorageProvider(storage, "a");
   const b = createLocalStorageProvider(storage, "b");
-  a.speichern([{ marker: "a" }]);
-  b.speichern([{ marker: "b" }]);
-  if (JSON.stringify(a.laden()) === JSON.stringify(b.laden())) {
+  a.set([{ marker: "a" }]);
+  b.set([{ marker: "b" }]);
+  if (JSON.stringify(a.get()) === JSON.stringify(b.get())) {
     throw new Error("unterschiedliche Schlüssel dürfen sich nicht überschreiben");
   }
 });
