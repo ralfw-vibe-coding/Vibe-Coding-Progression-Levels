@@ -17,8 +17,11 @@
  *   Hängt ein Ereignis an, vergibt seq und timestamp und gibt es zurück.
  * @property {(filter?: { wertpapierId?: string }) => any[]} query
  *   Liefert die Ereignisse in Aufzeichnungsreihenfolge, wahlweise nach Wertpapier gefiltert.
- * @property {(events: any[]) => void} overwrite
- *   Ersetzt den gesamten Bestand; seq und timestamp der übergebenen Ereignisse bleiben.
+ * @property {(events: any[]) => void} restore
+ *   Setzt den gesamten Bestand auf die übergebenen Ereignisse; seq und timestamp bleiben
+ *   dabei unverändert. Das ist keine Änderung von Ereignissen — im laufenden Betrieb wird
+ *   nur angehängt. Es ist dieselbe Operation, die auch beim Erzeugen passiert, nur später:
+ *   einen kompletten Bestand einspielen, wie beim Import einer Sicherung.
  */
 
 /**
@@ -49,14 +52,14 @@ export function createEventStore(initialeEvents = []) {
     return events.filter((e) => e.payload.wertpapierId === filter.wertpapierId);
   }
 
-  // Ersetzt den gesamten Bestand. seq und timestamp der übergebenen Ereignisse bleiben
-  // unverändert — sie wurden früher schon einmal vergeben und sollen es bleiben.
-  function overwrite(neueEvents) {
+  // seq und timestamp der übergebenen Ereignisse bleiben unverändert — sie wurden früher
+  // schon einmal vergeben und sollen es bleiben.
+  function restore(neueEvents) {
     events = neueEvents.slice();
     naechsteSeq = events.reduce((max, e) => Math.max(max, e.seq), 0) + 1;
   }
 
-  overwrite(initialeEvents);
+  restore(initialeEvents);
 
-  return { append, query, overwrite };
+  return { append, query, restore };
 }

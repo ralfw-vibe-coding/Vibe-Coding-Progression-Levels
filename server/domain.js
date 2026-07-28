@@ -103,11 +103,12 @@ export function createDomain(eventStore) {
   }
 
   // Die Domäne verantwortet Änderung und Auslesen des Zustands — also auch den Extremfall:
-  // den gesamten Bestand ersetzen bzw. ihn vollständig herausgeben. Das braucht es für den
-  // Im- und Export. Ob dabei etwas gespeichert wird, ist Sache des Event-Store; die Domäne
+  // einen kompletten Bestand einspielen bzw. ihn vollständig herausgeben. Beides gehört zum
+  // Im- und Export und kommt im laufenden Betrieb nicht vor; dort werden nur Ereignisse
+  // angehängt. Ob dabei etwas gespeichert wird, ist Sache des Event-Store; die Domäne
   // erfährt davon nichts.
-  function initialize(events) {
-    eventStore.overwrite(events);
+  function restore(events) {
+    eventStore.restore(events);
   }
 
   function dump() {
@@ -116,6 +117,6 @@ export function createDomain(eventStore) {
 
   return {
     kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen,
-    initialize, dump,
+    restore, dump,
   };
 }

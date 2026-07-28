@@ -47,10 +47,10 @@ export function createDateiEventStore(pfad) {
     return event;
   }
 
-  function overwrite(neueEvents) {
-    store.overwrite(neueEvents);
+  function restore(neueEvents) {
+    store.restore(neueEvents);
     schreiben();
   }
 
-  return { append, query: store.query, overwrite };
+  return { append, query: store.query, restore };
 }

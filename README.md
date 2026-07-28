@@ -59,8 +59,15 @@ client/    Portal (alles DOM), Body, eine dünne Domäne für Filter und Auswert
 tests/     Getrennt nach server/ und client/.
 ```
 
-Der Zustand liegt als Ereignisliste in `server/data/depot-events.json` und wird bei jeder
-Erfassung fortgeschrieben — ein Export ist dafür nicht mehr nötig. Der Datei-Export bleibt
-trotzdem: für Backups, den Umzug auf ein anderes Gerät und die Weitergabe (siehe
+Der Zustand liegt als Ereignisliste in der SQLite-Datenbank `server/data/depot.sqlite` und wird
+bei jeder Erfassung fortgeschrieben — ein Export ist dafür nicht mehr nötig. Der Datei-Export
+bleibt trotzdem: für Backups, den Umzug auf ein anderes Gerät und die Weitergabe (siehe
 `Verlauf/Stufe 05.md`). `startbestand.json` im Wurzelverzeichnis ist ein Beispielbestand zum
 Importieren.
+
+Wer noch einen Bestand aus der Zeit vor der Datenbank hat (`server/data/depot-events.json`),
+holt ihn einmalig herüber:
+
+```bash
+deno task migriere
+```

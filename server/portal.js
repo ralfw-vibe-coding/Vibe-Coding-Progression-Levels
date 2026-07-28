@@ -43,7 +43,7 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
     if (pfad === "/api/events" && methode === "PUT") {
       const events = await request.json();
       if (!Array.isArray(events)) return json({ fehler: "Erwartet wird eine Liste von Ereignissen." }, 400);
-      return json(body.initialize(events));
+      return json(body.restore(events));
     }
     if (pfad === "/api/kauf" && methode === "POST") {
       return json(body.kaufErfassen(await request.json()));

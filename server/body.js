@@ -4,7 +4,7 @@
 // Auffällig ist, was hier fehlt: kein Speichern, kein Laden, kein "Zustand sichern". Der
 // Event-Store hält seine Ereignisse selbst dauerhaft (siehe dateiEventStore.js), also gibt es
 // dafür nichts mehr zu orchestrieren. Was im Browser "exportieren/importieren" hieß, heißt hier
-// dump/initialize — dieselben zwei Operationen, ohne den Dateidialog, der ein reines
+// dump/restore — dieselben zwei Operationen, ohne den Dateidialog, der ein reines
 // Browser-Thema ist und im Client geblieben ist.
 export function createBody(domain) {
   // Kein Filter: Filtern ist eine reine Anzeigefrage und war noch nie Sache der Domäne.
@@ -47,14 +47,14 @@ export function createBody(domain) {
     return domain.dump();
   }
 
-  // Ersetzt den Bestand vollständig — der Gegenpart zum Import im Client.
-  function initialize(events) {
-    domain.initialize(events);
+  // Spielt einen kompletten Bestand ein — der Gegenpart zum Import im Client.
+  function restore(events) {
+    domain.restore(events);
     return domain.positionenAbfragen();
   }
 
   return {
     depotAbfragen, kaufErfassen, kursupdateErfassen, neuePositionErfassen,
-    positionsverlaufAbfragen, dump, initialize,
+    positionsverlaufAbfragen, dump, restore,
   };
 }

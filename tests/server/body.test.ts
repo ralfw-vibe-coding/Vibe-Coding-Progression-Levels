@@ -80,7 +80,7 @@ Deno.test("dump liefert den vollständigen Ereignisbestand", () => {
   if (events[0].eventType !== "kauf") throw new Error("erwartet zuerst das kauf-Ereignis");
 });
 
-Deno.test("initialize ersetzt den Zustand und gibt das neue Modell zurück", () => {
+Deno.test("restore ersetzt den Zustand und gibt das neue Modell zurück", () => {
   const neueEvents = [
     { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", name: "Import AG", typ: "Aktie", stueck: 5, kaufkurs: 10, datum: "2026-07-01" } },
     { seq: 2, eventType: "kursupdate", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", kurs: 20, datum: "2026-07-02" } },
@@ -88,15 +88,15 @@ Deno.test("initialize ersetzt den Zustand und gibt das neue Modell zurück", () 
   const body = neuerBody();
   body.neuePositionErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 1, kurs: 1, datum: "2026-07-01" });
 
-  const modell = body.initialize(neueEvents);
+  const modell = body.restore(neueEvents);
   if (modell.positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${modell.positionen.length}`);
   if (modell.positionen[0].wertpapierId !== "X") throw new Error("alter Bestand darf nicht überleben");
   if (modell.depotwert !== 100) throw new Error(`erwartet depotwert 100, war ${modell.depotwert}`);
 });
 
-Deno.test("nach initialize erfasste Ereignisse knüpfen an den übernommenen Bestand an", () => {
+Deno.test("nach restore erfasste Ereignisse knüpfen an den übernommenen Bestand an", () => {
   const body = neuerBody();
-  body.initialize([
+  body.restore([
     { seq: 7, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", name: "Import AG", typ: "Aktie", stueck: 1, kaufkurs: 10, datum: "2026-07-01" } },
   ]);
   body.kursupdateErfassen({ wertpapierId: "X", kurs: 30, datum: "2026-07-02" });

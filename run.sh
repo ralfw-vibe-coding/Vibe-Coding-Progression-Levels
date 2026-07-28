@@ -17,6 +17,18 @@ fi
 
 export PORT="${1:-${PORT:-8000}}"
 
+# Ein belegter Port ist der häufigste Grund, warum der Start scheitert — meist läuft die
+# Anwendung noch aus einem früheren Versuch. Deno meldet das nur als nackten Fehler, deshalb
+# hier vorab nachsehen und sagen, wer den Port hält und was man tun kann.
+if belegt=$(lsof -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null) && [ -n "$belegt" ]; then
+  echo "Port $PORT ist belegt:" >&2
+  echo "$belegt" | sed 1d | awk '{print "  " $1 " (PID " $2 ")"}' >&2
+  echo "" >&2
+  echo "Entweder den Prozess beenden:  kill $(echo "$belegt" | sed 1d | awk 'NR==1{print $2}')" >&2
+  echo "oder einen anderen Port nehmen: ./run.sh $((PORT + 1))" >&2
+  exit 1
+fi
+
 # Deno erlaubt standardmäßig gar nichts — jedes Recht muss einzeln erteilt werden. Diese vier
 # braucht der Server, mehr nicht:
 #   --allow-net     auf dem Port lauschen und Anfragen beantworten

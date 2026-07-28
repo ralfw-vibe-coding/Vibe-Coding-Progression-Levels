@@ -135,38 +135,38 @@ export function pruefeEventStoreVertrag(
     },
   );
 
-  vertragstest("overwrite ersetzt den bisherigen Bestand vollständig, hängt nicht an", (store) => {
+  vertragstest("restore ersetzt den bisherigen Bestand vollständig, hängt nicht an", (store) => {
     store.append("kauf", { wertpapierId: "ALT" });
-    store.overwrite([
+    store.restore([
       { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU" } },
     ]);
     const alle = store.query();
     if (alle.length !== 1 || alle[0].payload.wertpapierId !== "NEU") {
-      throw new Error("overwrite muss den alten Bestand ersetzen");
+      throw new Error("restore muss den alten Bestand ersetzen");
     }
   });
 
-  vertragstest("overwrite übernimmt seq und timestamp unverändert", (store) => {
+  vertragstest("restore übernimmt seq und timestamp unverändert", (store) => {
     const vorhanden = [
       { seq: 5, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
     ];
-    store.overwrite(vorhanden);
+    store.restore(vorhanden);
     if (JSON.stringify(store.query()) !== JSON.stringify(vorhanden)) {
-      throw new Error("overwrite muss inklusive seq und timestamp identisch übernehmen");
+      throw new Error("restore muss inklusive seq und timestamp identisch übernehmen");
     }
   });
 
-  vertragstest("nach overwrite ist die nächste seq max(seq)+1", (store) => {
-    store.overwrite([
+  vertragstest("nach restore ist die nächste seq max(seq)+1", (store) => {
+    store.restore([
       { seq: 3, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
     ]);
     const neues = store.append("kauf", { wertpapierId: "B" });
     if (neues.seq !== 4) throw new Error(`erwartet seq 4, war ${neues.seq}`);
   });
 
-  vertragstest("overwrite mit einer leeren Liste leert den Store", (store) => {
+  vertragstest("restore mit einer leeren Liste leert den Store", (store) => {
     store.append("kauf", { wertpapierId: "A" });
-    store.overwrite([]);
+    store.restore([]);
     if (store.query().length !== 0) throw new Error("erwartet einen leeren Store");
   });
 }

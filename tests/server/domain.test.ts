@@ -183,28 +183,28 @@ Deno.test("dump liefert die rohen Ereignisse unverändert", () => {
   }
 });
 
-Deno.test("initialize übernimmt einen zuvor per dump ausgelesenen Bestand identisch", () => {
+Deno.test("restore übernimmt einen zuvor per dump ausgelesenen Bestand identisch", () => {
   const quelle = neueDomaene();
   quelle.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 3, kaufkurs: 100, datum: "2026-07-01" });
   quelle.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-10" });
   const ausgelesen = quelle.dump();
 
   const ziel = neueDomaene();
-  ziel.initialize(ausgelesen);
+  ziel.restore(ausgelesen);
   const { positionen } = ziel.positionenAbfragen();
   if (positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${positionen.length}`);
   if (positionen[0].wert !== 450) throw new Error(`erwartet wert 450, war ${positionen[0].wert}`);
   if (JSON.stringify(ziel.dump()) !== JSON.stringify(ausgelesen)) {
-    throw new Error("dump nach initialize muss dem übernommenen Bestand entsprechen");
+    throw new Error("dump nach restore muss dem übernommenen Bestand entsprechen");
   }
 });
 
-Deno.test("initialize verwirft den bisherigen Zustand vollständig", () => {
+Deno.test("restore verwirft den bisherigen Zustand vollständig", () => {
   const domain = neueDomaene();
   domain.kaufErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
   domain.kursupdateErfassen({ wertpapierId: "ALT", kurs: 100, datum: "2026-07-01" });
 
-  domain.initialize([
+  domain.restore([
     { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU", name: "Neu AG", typ: "Aktie", stueck: 2, kaufkurs: 10, datum: "2026-07-01" } },
     { seq: 2, eventType: "kursupdate", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU", kurs: 20, datum: "2026-07-02" } },
   ]);
@@ -215,9 +215,9 @@ Deno.test("initialize verwirft den bisherigen Zustand vollständig", () => {
   if (depotwert !== 40) throw new Error(`erwartet depotwert 40, war ${depotwert}`);
 });
 
-Deno.test("nach initialize erfasste Ereignisse knüpfen an den importierten Bestand an", () => {
+Deno.test("nach restore erfasste Ereignisse knüpfen an den importierten Bestand an", () => {
   const domain = neueDomaene();
-  domain.initialize([
+  domain.restore([
     { seq: 7, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" } },
   ]);
   domain.kursupdateErfassen({ wertpapierId: "A", kurs: 200, datum: "2026-07-10" });

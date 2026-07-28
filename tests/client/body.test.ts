@@ -16,7 +16,7 @@ function fakeBackend(startModell: any = leeresModell()) {
     neuePositionErfassen(daten: any) { aufrufe.push("neuePositionErfassen"); return Promise.resolve({ ...modell, letztePosition: daten }); },
     positionsverlaufAbfragen(daten: any) { aufrufe.push("positionsverlaufAbfragen"); return Promise.resolve([{ eventType: "kauf", ...daten }]); },
     dump() { aufrufe.push("dump"); return Promise.resolve([{ seq: 1 }]); },
-    initialize(events: any) { aufrufe.push("initialize"); modell = { ...leeresModell(), importiert: events }; return Promise.resolve(modell); },
+    restore(events: any) { aufrufe.push("restore"); modell = { ...leeresModell(), importiert: events }; return Promise.resolve(modell); },
   };
 }
 
@@ -144,7 +144,7 @@ Deno.test("importieren schickt die Datei ans Backend und übernimmt das neue Mod
   const backend = fakeBackend();
   const body = await neuerBody(backend, fakeImExport(events));
   const modell: any = await body.importieren();
-  if (!backend.aufrufe.includes("initialize")) throw new Error("der Import muss das Backend ersetzen lassen");
+  if (!backend.aufrufe.includes("restore")) throw new Error("der Import muss das Backend ersetzen lassen");
   if (JSON.stringify(modell.importiert) !== JSON.stringify(events)) {
     throw new Error("das Backend muss die importierten Ereignisse bekommen haben");
   }

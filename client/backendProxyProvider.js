@@ -35,6 +35,6 @@ export function createBackendProxyProvider(basisUrl, apiKey) {
       return anfragen(`/api/verlauf/${encodeURIComponent(wertpapierId)}${query}`);
     },
     dump: () => anfragen("/api/events"),
-    initialize: (events) => senden("/api/events", "PUT", events),
+    restore: (events) => senden("/api/events", "PUT", events),
   };
 }

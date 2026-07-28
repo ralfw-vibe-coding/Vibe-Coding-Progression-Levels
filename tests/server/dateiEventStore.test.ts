@@ -80,16 +80,16 @@ dateiTest("seq und timestamp überstehen den Neustart unverändert", (pfad) => {
   }
 });
 
-dateiTest("overwrite schreibt den ersetzten Bestand ebenfalls sofort", (pfad) => {
+dateiTest("restore schreibt den ersetzten Bestand ebenfalls sofort", (pfad) => {
   const store = createDateiEventStore(pfad);
   store.append("kauf", { wertpapierId: "ALT" });
-  store.overwrite([
+  store.restore([
     { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU" } },
   ]);
 
   const aufDerPlatte = JSON.parse(Deno.readTextFileSync(pfad));
   if (aufDerPlatte.length !== 1 || aufDerPlatte[0].payload.wertpapierId !== "NEU") {
-    throw new Error("nach overwrite muss der neue Bestand allein in der Datei stehen");
+    throw new Error("nach restore muss der neue Bestand allein in der Datei stehen");
   }
 });
 

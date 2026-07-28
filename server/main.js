@@ -1,7 +1,7 @@
 // Kompositionswurzel des Servers: der einzige Ort, an dem die Server-Module zusammengesteckt
 // werden — das Gegenstück zum Kompositionsskript, das bisher in der index.html stand.
 import { fileURLToPath } from "node:url";
-import { createDateiEventStore } from "./dateiEventStore.js";
+import { createSqliteEventStore } from "./sqliteEventStore.js";
 import { createDomain } from "./domain.js";
 import { createApiKeyProvider } from "./apiKeyProvider.js";
 import { createBody } from "./body.js";
@@ -15,8 +15,10 @@ const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
 const PORT = Number(Deno.env.get("PORT") ?? 8000);
 
 // Der Event-Store bringt seinen bisherigen Bestand schon mit, sobald er erzeugt ist — es gibt
-// keinen zusätzlichen Ladeschritt mehr, den man vergessen könnte.
-const eventStore = createDateiEventStore(`${DATEN}/depot-events.json`);
+// keinen zusätzlichen Ladeschritt mehr, den man vergessen könnte. Dass die Ereignisse jetzt in
+// einer Datenbank statt in einer JSON-Datei liegen, ist genau diese eine Zeile: Alles darüber
+// — Domäne, Body, Portal, Client — bleibt unverändert.
+const eventStore = createSqliteEventStore(`${DATEN}/depot.sqlite`);
 const domain = createDomain(eventStore);
 const body = createBody(domain);
 

@@ -63,7 +63,7 @@ export function createBody(backend, imExport, domain) {
   async function importieren() {
     const events = await imExport.import();
     if (!events) return null;
-    modell = await backend.initialize(events);
+    modell = await backend.restore(events);
     return modell;
   }
 
