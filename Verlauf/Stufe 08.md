@@ -136,6 +136,49 @@ Die Reihenfolge ist dabei kein Zufall. Der Vertrag entstand, als es zwei Ausprä
 denen man ihn noch für Zierrat halten konnte. Wer ihn erst schreibt, wenn er gebraucht wird, hat
 ihn nicht, wenn er gebraucht wird.
 
+## Messen konnte man das alles nur aus demselben Grund
+
+Sämtliche Zahlen in dieser Stufe — Schreibzeiten, Startzeit, Speicherverbrauch, das Verhalten bei
+gleichzeitigem Zugriff — entstanden in kleinen Wegwerf-Skripten außerhalb des Projekts. Das war
+kein Geschick, sondern eine Folge derselben Architektur, die schon den Umbau klein gehalten hat.
+
+Der Grund in einem Satz: **Ein Event-Store lässt sich einzeln erzeugen und benutzen.** Es braucht
+dafür keinen Server, keine Domäne, keinen Browser, keine eingerichtete Datenbank. Eine Zeile
+erzeugt ihn, und weil ihm beim Erzeugen gesagt wird, wo seine Ereignisse liegen sollen, zeigt er
+auf ein Wegwerf-Verzeichnis statt auf das echte Depot. Weil er außerdem beliebige Nutzdaten
+annimmt, ließen sich 200.000 erfundene Ereignisse hineinschütten, ohne einen einzigen gültigen
+Kauf zu konstruieren.
+
+Der aussagekräftigste Punkt daran fällt zuerst gar nicht auf, weil nichts passiert ist: **Am
+Produktionscode musste dafür nichts geändert werden.** Kein Testmodus, kein Schalter, kein
+eingebauter Messpunkt. Wer Code erst anfassen muss, um ihn zu vermessen, hat die Schnittstellen an
+der falschen Stelle.
+
+Wie viel daran Architektur ist, zeigt der Gegenentwurf. Wäre die Speicherung wie üblich verwoben —
+der Store beim Serverstart erzeugt, der Pfad aus einer Konfiguration, das Schreiben irgendwo in der
+Fachlogik —, dann hätte jede dieser Messungen eine andere Gestalt gehabt:
+
+- Für einen einzigen Schreibvorgang hätte der ganze Server hochfahren müssen.
+- Die gemessene Zeit hätte HTTP, JSON und Fachlogik enthalten — also alles außer dem, worum es
+  ging.
+- Auf ein Wegwerf-Verzeichnis zu zeigen ginge nur durch eine Codeänderung.
+- Zwei gleichzeitige Schreiber wären zwei Server auf zwei Ports gewesen; gemessen hätte man deren
+  Zusammenspiel, nicht das des Speichers.
+- Und der Vergleich dreier Ausprägungen wäre unmöglich, weil es keine drei gäbe.
+
+Daraus folgt die eigentliche Erkenntnis dieser Stufe, die über sie hinausreicht:
+**Testbarkeit und Austauschbarkeit sind dieselbe Eigenschaft, von zwei Seiten betrachtet.** Ein
+Baustein, den man im Betrieb gegen einen anderen tauschen kann, ist genau deshalb auch einer, den
+man einzeln vermessen kann. Dass der Umstieg eine Zeile war und die Messung ein Wegwerf-Skript,
+ist nicht zweimal Glück, sondern einmal dieselbe Ursache. Die Vertragssuite aus Stufe 7, der
+Wechsel auf SQLite und diese Experimente sind drei Verwendungen ein und derselben Eigenschaft.
+
+Umsonst war sie nicht zu haben. Sie stammt aus Entscheidungen, die zum Zeitpunkt ihrer Entstehung
+nach Mehrarbeit ohne Gegenwert aussahen: Der Event-Store darf nicht wissen, wohin gespeichert wird
+(Stufe 4). Die Domäne verantwortet ihren Zustand (Stufe 5). Der Store ist selbst persistent, und
+sein Vertrag wird geprüft (Stufe 7). Der Nutzen ist erst hier angefallen, drei bis vier Stufen
+später — und genau das macht solche Entscheidungen im Alltag so schwer zu verteidigen.
+
 ## Die Daten mussten mit umziehen
 
 Ein bestehendes Depot in einer JSON-Datei wird nicht von selbst zur Datenbank. Dafür gibt es
@@ -178,3 +221,8 @@ Abhängigkeit auskommt.
 - Der Aufwand einer Änderung wird lange vorher entschieden. Dass diese Stufe klein war, ist das
   Ergebnis von zwei Entscheidungen aus Stufe 7 — und die sahen damals nach Mehrarbeit ohne
   unmittelbaren Nutzen aus.
+- Testbarkeit und Austauschbarkeit sind dieselbe Eigenschaft von zwei Seiten. Was sich im Betrieb
+  gegen etwas anderes tauschen lässt, lässt sich auch einzeln vermessen — und umgekehrt. Wer eine
+  der beiden Fähigkeiten baut, bekommt die andere geschenkt.
+- Ein gutes Zeichen für einen Schnitt ist, dass man nichts anfassen muss, um hineinzuschauen. War
+  ein Testmodus oder ein eingebauter Messpunkt nötig, liegt die Grenze falsch.
