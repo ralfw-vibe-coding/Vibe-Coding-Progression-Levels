@@ -58,13 +58,14 @@ Deno.test("ein Kauf über den API landet im Bestand und wird persistiert", async
     }),
   }));
   if (antwort.status !== 200) throw new Error(`erwartet 200, war ${antwort.status}`);
-  const modell = await antwort.json();
+  const { modell } = await antwort.json();
   if (modell.positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${modell.positionen.length}`);
   if (modell.depotwert !== 220) throw new Error(`erwartet depotwert 220, war ${modell.depotwert}`);
   // Der eigentliche Punkt dieser Stufe: nach dem Aufruf steht es auf der Platte, ohne dass
   // jemand exportieren musste.
   const aufDerPlatte = JSON.parse(Deno.readTextFileSync(pfad));
-  if (aufDerPlatte.length !== 2) throw new Error(`erwartet 2 persistierte Ereignisse, war ${aufDerPlatte.length}`);
+  // Kauf + Kursupdate + Kennzeichnung als manuell (dieser Server hat keine Kursquelle).
+  if (aufDerPlatte.length !== 3) throw new Error(`erwartet 3 persistierte Ereignisse, war ${aufDerPlatte.length}`);
   Deno.removeSync(verzeichnis, { recursive: true });
 });
 

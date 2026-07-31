@@ -17,6 +17,54 @@ export function createDomain(eventStore) {
     eventStore.append("kursupdate", { wertpapierId, kurs, datum });
   }
 
+  // Woher der Kurs dieses Papiers bezogen wird — festgelegt als Ganzes, nicht als loses Symbol.
+  //
+  // Ein Symbol allein genügt nicht: Ein Kurs gehört immer zu einem Handelsplatz, und derselbe
+  // Titel notiert an Xetra in Euro und an der NASDAQ in Dollar. Und dasselbe Kürzel kann bei
+  // verschiedenen Anbietern verschiedene Papiere meinen. Deshalb gehören Quelle, Symbol,
+  // Handelsplatz und Währung zusammen — sie sind erst gemeinsam eine eindeutige Auskunft.
+  //
+  // Der Bezug gehört zum Wertpapier, nicht zur Position: Dasselbe Papier bei zwei Brokern hat
+  // denselben Kurs. Deshalb ohne broker — anders als beim Kauf.
+  //
+  // Ein eigenes Ereignis, weil die Zuordnung nachträglich entsteht und sich ändern darf: Man
+  // trägt sie ein, wenn man sie kennt, und korrigiert sie, wenn sie falsch war. Das jüngste
+  // Ereignis gilt.
+  /**
+   * @param {{ wertpapierId: string, quelle: string, symbol: string,
+   *           boerse?: string | null, waehrung?: string | null }} bezug
+   */
+  function kursbezugZuordnen({ wertpapierId, quelle, symbol, boerse, waehrung }) {
+    eventStore.append("kursbezugZugeordnet", {
+      wertpapierId,
+      art: "automatisch",
+      quelle: quelle || null,
+      symbol: symbol || null,
+      boerse: boerse || null,
+      waehrung: waehrung || null,
+    });
+  }
+
+  // Bewusst ohne Quelle: Für manche Papiere — Emittenten-Zertifikate, sehr kleine Werte —
+  // gibt es schlicht keine. Diese Entscheidung festzuhalten ist etwas anderes als "noch nicht
+  // eingerichtet": Das eine ist erledigt, das andere eine offene Aufgabe. Ohne diesen
+  // Unterschied stünde jede solche Position dauerhaft als Mangel da.
+  //
+  // Dazu gehört, wo man den Kurs stattdessen nachschlägt. Ohne diese Angabe müsste man bei
+  // jeder Pflege neu suchen — und genau das ist die Arbeit, die hier vermieden werden soll.
+  function alsManuellMarkieren({ wertpapierId, nachschlagenUnter }) {
+    eventStore.append("kursbezugZugeordnet", {
+      wertpapierId, art: "manuell",
+      nachschlagenUnter: nachschlagenUnter || null,
+      quelle: null, symbol: null, boerse: null, waehrung: null,
+    });
+  }
+
+  /** Setzt zurück auf "offen" — weder eingerichtet noch bewusst manuell. */
+  function kursbezugEntfernen({ wertpapierId }) {
+    eventStore.append("kursbezugZugeordnet", { wertpapierId, art: null, quelle: null, symbol: null, boerse: null, waehrung: null });
+  }
+
   function positionenAbfragen() {
     // Mehrere "kauf"-Events zu selber wertpapierId UND selbem Broker sind Nachkäufe und
     // werden addiert: Stück summiert sich, Kaufwert ist die Summe der einzelnen
@@ -24,7 +72,22 @@ export function createDomain(eventStore) {
     // eigenständige Position — der Broker gehört zur Identität, nicht nur zur Beschriftung.
     const kaeufe = new Map();
     const kurse = new Map();
+    const kursbezuege = new Map(); // wertpapierId -> Bezug; das jüngste Ereignis gilt
     for (const e of eventStore.query()) {
+      if (e.eventType === "kursbezugZugeordnet") {
+        const b = e.payload;
+        // Drei Zustände, aus einem Ereignisstrom: eingerichtet, bewusst manuell, oder offen.
+        if (b.art === "manuell") kursbezuege.set(b.wertpapierId, { art: "manuell", nachschlagenUnter: b.nachschlagenUnter ?? null });
+        else if (b.symbol) kursbezuege.set(b.wertpapierId, { art: "automatisch", quelle: b.quelle, symbol: b.symbol, boerse: b.boerse, waehrung: b.waehrung });
+        else kursbezuege.set(b.wertpapierId, null);
+      }
+      // Aus der Zeit, als nur ein Symbol festgehalten wurde. Die Ereignisse bleiben gültig —
+      // nur fehlt ihnen die Quelle, weshalb sie für den Abruf nicht genügen und der Nutzer
+      // die Zuordnung erneuern muss.
+      if (e.eventType === "symbolZugeordnet") {
+        const b = e.payload;
+        kursbezuege.set(b.wertpapierId, b.symbol ? { art: "automatisch", quelle: null, symbol: b.symbol, boerse: null, waehrung: null } : null);
+      }
       if (e.eventType === "kauf") {
         const p = e.payload;
         const broker = p.broker || null;
@@ -66,6 +129,7 @@ export function createDomain(eventStore) {
       const diffPct = kaufwert ? (diffAbs / kaufwert) * 100 : null;
       positionen.push({
         wertpapierId: agg.wertpapierId, name: agg.name, typ: agg.typ, broker: agg.broker, stueck: agg.stueck,
+        kursbezug: kursbezuege.get(agg.wertpapierId) ?? null,
         wert, kurs, kursDatum, kaufwert, kaufkurs, diffAbs, diffPct,
         anteilAmDepot: 0, // steht erst fest, wenn der Depotwert komplett ist (siehe unten)
       });
@@ -94,6 +158,9 @@ export function createDomain(eventStore) {
     // Broker, da der Kurs nicht vom Broker abhängt.
     return eventStore
       .query({ wertpapierId })
+      // Eine Symbol-Zuordnung ist Zubehör für den Kursabruf, kein Vorgang am Depot — sie
+      // gehört nicht in die Geschichte einer Position.
+      .filter((e) => e.eventType !== "symbolZugeordnet" && e.eventType !== "kursbezugZugeordnet")
       .filter((e) => e.eventType === "kursupdate" || (e.payload.broker || null) === (broker || null))
       .sort((a, b) => {
         if (a.payload.datum !== b.payload.datum) return a.payload.datum > b.payload.datum ? -1 : 1;
@@ -116,7 +183,8 @@ export function createDomain(eventStore) {
   }
 
   return {
-    kaufErfassen, kursupdateErfassen, positionenAbfragen, positionsverlaufAbfragen,
+    kaufErfassen, kursupdateErfassen, kursbezugZuordnen, alsManuellMarkieren, kursbezugEntfernen,
+    positionenAbfragen, positionsverlaufAbfragen,
     restore, dump,
   };
 }

@@ -17,6 +17,16 @@ fi
 
 export PORT="${1:-${PORT:-8000}}"
 
+# Zugangsdaten für externe Dienste stehen in .env — einer Datei, die absichtlich nicht im
+# Repository liegt (siehe .gitignore). Sie fehlt also auf einem frischen Klon, und das ist
+# kein Fehler: Ohne Schlüssel läuft die Anwendung weiter, nur mit weniger Kursquellen.
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env
+  set +a
+fi
+
 # Ein belegter Port ist der häufigste Grund, warum der Start scheitert — meist läuft die
 # Anwendung noch aus einem früheren Versuch. Deno meldet das nur als nackten Fehler, deshalb
 # hier vorab nachsehen und sagen, wer den Port hält und was man tun kann.

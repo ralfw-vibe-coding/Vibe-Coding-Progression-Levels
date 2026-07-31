@@ -1,3 +1,4 @@
 requirements
 coverage
 server/data
+.env

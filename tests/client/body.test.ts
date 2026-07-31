@@ -13,8 +13,16 @@ function fakeBackend(startModell: any = leeresModell()) {
     depotAbfragen() { aufrufe.push("depotAbfragen"); return Promise.resolve(modell); },
     kaufErfassen(daten: any) { aufrufe.push("kaufErfassen"); return Promise.resolve({ ...modell, letzterKauf: daten }); },
     kursupdateErfassen(daten: any) { aufrufe.push("kursupdateErfassen"); return Promise.resolve({ ...modell, letztesUpdate: daten }); },
-    neuePositionErfassen(daten: any) { aufrufe.push("neuePositionErfassen"); return Promise.resolve({ ...modell, letztePosition: daten }); },
+    neuePositionErfassen(daten: any) { aufrufe.push("neuePositionErfassen"); return Promise.resolve({ modell: { ...modell, letztePosition: daten }, symbol: { symbol: null } }); },
     positionsverlaufAbfragen(daten: any) { aufrufe.push("positionsverlaufAbfragen"); return Promise.resolve([{ eventType: "kauf", ...daten }]); },
+    kursbezugZuordnen(daten: any) { aufrufe.push("kursbezugZuordnen"); modell = { ...modell, letzterBezug: daten }; return Promise.resolve(modell); },
+    kurseAktualisieren() {
+      aufrufe.push("kurseAktualisieren");
+      return Promise.resolve({
+        modell: { ...modell, aktualisiert: true },
+        bericht: [{ wertpapierId: "A", erfolg: true, kurs: 10, quelle: "Test" }],
+      });
+    },
     dump() { aufrufe.push("dump"); return Promise.resolve([{ seq: 1 }]); },
     restore(events: any) { aufrufe.push("restore"); modell = { ...leeresModell(), importiert: events }; return Promise.resolve(modell); },
   };
@@ -159,4 +167,52 @@ Deno.test("ein abgebrochener Dateidialog lässt den Zustand unangetastet", async
   if (ergebnis !== null) throw new Error("erwartet null bei abgebrochenem Dialog");
   if (backend.aufrufe.length !== 0) throw new Error("ein Abbruch darf das Backend gar nicht erst erreichen");
   if (body.depotAbfragen().depotwert !== 300) throw new Error("der bisherige Bestand muss erhalten bleiben");
+});
+
+Deno.test("kurseAktualisieren liefert den Bericht und übernimmt das neue Modell", async () => {
+  const backend = fakeBackend();
+  const body = createBody(backend, fakeImExport(), domain);
+  await body.initialisieren();
+
+  const bericht = await body.kurseAktualisieren();
+  if (bericht.length !== 1 || !bericht[0].erfolg) throw new Error("der Bericht muss durchgereicht werden");
+  // Das Modell wird aus der Antwort übernommen — kein zweiter Abruf nötig.
+  if (!(body.depotAbfragen() as any).aktualisiert) throw new Error("das neue Modell muss übernommen werden");
+  if (backend.aufrufe.filter((a) => a === "depotAbfragen").length !== 1) {
+    throw new Error("nach dem Aktualisieren darf nicht extra nachgeladen werden");
+  }
+});
+
+Deno.test("letzteAktualisierung nennt das jüngste Kursdatum des Bestands", async () => {
+  const backend = fakeBackend({
+    ...leeresModell(),
+    positionen: [
+      { wertpapierId: "A", kursDatum: "2026-07-24" },
+      { wertpapierId: "B", kursDatum: "2026-07-28" },
+      { wertpapierId: "C", kursDatum: null },
+    ],
+  });
+  const body = createBody(backend, fakeImExport(), domain);
+  await body.initialisieren();
+  if (body.letzteAktualisierung() !== "2026-07-28") {
+    throw new Error(`erwartet 2026-07-28, war ${body.letzteAktualisierung()}`);
+  }
+});
+
+Deno.test("ohne jeden Kurs gibt es keinen Stand", async () => {
+  const body = createBody(fakeBackend(), fakeImExport(), domain);
+  await body.initialisieren();
+  if (body.letzteAktualisierung() !== null) throw new Error("erwartet null bei leerem Depot");
+});
+
+Deno.test("kursbezugZuordnen geht ans Backend und aktualisiert das Modell", async () => {
+  const backend = fakeBackend();
+  const body = createBody(backend, fakeImExport(), domain);
+  await body.initialisieren();
+
+  await body.kursbezugZuordnen({ wertpapierId: "A", quelle: "Yahoo", symbol: "APC.DE" });
+  if (!backend.aufrufe.includes("kursbezugZuordnen")) throw new Error("die Zuordnung muss zum Server");
+  if ((body.depotAbfragen() as any).letzterBezug.symbol !== "APC.DE") {
+    throw new Error("das neue Modell muss übernommen werden");
+  }
 });

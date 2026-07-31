@@ -32,13 +32,39 @@ export function createBody(backend, imExport, domain) {
     return modell;
   }
 
+  // Der Server versucht beim Erfassen selbst, ein Kurssymbol zu finden. Was dabei
+  // herauskam, kommt als Auskunft zurück — das Portal zeigt es dem Nutzer.
   async function neuePositionErfassen(daten) {
-    modell = await backend.neuePositionErfassen(daten);
-    return modell;
+    const { modell: neuesModell, symbol } = await backend.neuePositionErfassen(daten);
+    modell = neuesModell;
+    return symbol;
   }
 
   function positionsverlaufAbfragen({ wertpapierId, broker }) {
     return backend.positionsverlaufAbfragen({ wertpapierId, broker });
+  }
+
+  // Reine Auskunft: Das Depot ändert sich dabei nicht, also auch nicht das gehaltene Modell.
+  function symboleSuchen(begriff) {
+    return backend.symboleSuchen(begriff);
+  }
+
+  // Reine Auskunft: ändert nichts am Depot, beantwortet nur "liefert dieser Kandidat?"
+  function kursbezugPruefen(daten) {
+    return backend.kursbezugPruefen(daten);
+  }
+
+  async function kursbezugZuordnen(daten) {
+    modell = await backend.kursbezugZuordnen(daten);
+    return modell;
+  }
+
+  // Der Bericht sagt je Wertpapier, ob der Abruf geklappt hat. Er wird nicht aufbewahrt: Er
+  // beschreibt genau diesen einen Versuch — beim nächsten Laden der Seite ist er hinfällig.
+  async function kurseAktualisieren() {
+    const { modell: neuesModell, bericht } = await backend.kurseAktualisieren();
+    modell = neuesModell;
+    return bericht;
   }
 
   // Dashboard-Projektionen über den vollen, ungefilterten Bestand: das Dashboard zeigt immer
@@ -67,8 +93,17 @@ export function createBody(backend, imExport, domain) {
     return modell;
   }
 
+  // Wann zuletzt ein Kurs eingetroffen ist, steht schon im Bestand — es ist das jüngste
+  // Kursdatum aller Positionen. Dafür braucht es keinen zusätzlichen gespeicherten Zeitpunkt,
+  // der mit der Wirklichkeit auseinanderlaufen könnte.
+  function letzteAktualisierung() {
+    const datumsangaben = modell.positionen.map((p) => p.kursDatum).filter(Boolean).sort();
+    return datumsangaben.length ? datumsangaben[datumsangaben.length - 1] : null;
+  }
+
   return {
     initialisieren, depotAbfragen, dashboardAbfragen, kaufErfassen, kursupdateErfassen,
-    neuePositionErfassen, positionsverlaufAbfragen, exportieren, importieren,
+    neuePositionErfassen, kursbezugZuordnen, kursbezugPruefen, symboleSuchen, kurseAktualisieren, letzteAktualisierung,
+    positionsverlaufAbfragen, exportieren, importieren,
   };
 }

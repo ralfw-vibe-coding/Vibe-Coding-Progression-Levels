@@ -226,3 +226,43 @@ Deno.test("nach restore erfasste Ereignisse knüpfen an den importierten Bestand
   if (events.length !== 2) throw new Error(`erwartet 2 Ereignisse, war ${events.length}`);
   if (events[1].seq !== 8) throw new Error(`erwartet seq 8 für das neue Ereignis, war ${events[1].seq}`);
 });
+
+Deno.test("der Kursbezug hängt am Wertpapier, nicht an der Position", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "onvista", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+
+  const { positionen } = domain.positionenAbfragen();
+  if (positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${positionen.length}`);
+  // Dasselbe Papier hat denselben Kurs, egal bei welchem Broker es liegt.
+  if (positionen.some((p: any) => p.kursbezug?.symbol !== "APC.DE")) {
+    throw new Error("beide Broker-Positionen müssen dasselbe Symbol tragen");
+  }
+});
+
+Deno.test("ohne Zuordnung bleibt der Kursbezug null", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  if (domain.positionenAbfragen().positionen[0].kursbezug !== null) throw new Error("erwartet keinen Kursbezug");
+});
+
+Deno.test("eine spätere Zuordnung überschreibt die frühere", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "FALSCH" });
+  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+  if (domain.positionenAbfragen().positionen[0].kursbezug?.symbol !== "APC.DE") {
+    throw new Error("die jüngste Zuordnung muss gelten — Korrigieren muss möglich sein");
+  }
+});
+
+Deno.test("ein Kursbezug taucht nicht im Verlauf der Position auf", () => {
+  const domain = neueDomaene();
+  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+
+  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A" });
+  if (verlauf.length !== 1) throw new Error(`erwartet nur den Kauf, war ${verlauf.length} Einträge`);
+  if (verlauf[0].eventType !== "kauf") throw new Error("nur fachliche Vorgänge gehören in den Verlauf");
+});

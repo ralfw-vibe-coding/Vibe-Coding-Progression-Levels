@@ -52,7 +52,39 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
       return json(body.kursupdateErfassen(await request.json()));
     }
     if (pfad === "/api/neue-position" && methode === "POST") {
-      return json(body.neuePositionErfassen(await request.json()));
+      try {
+        return json(await body.neuePositionErfassen(await request.json()));
+      } catch (f) {
+        return json({ fehler: f.message }, 400);
+      }
+    }
+    if (pfad === "/api/symbol-suche" && methode === "GET") {
+      const begriff = new URL(request.url).searchParams.get("q") ?? "";
+      try {
+        return json(await body.symboleSuchen(begriff));
+      } catch (f) {
+        return json({ fehler: f.message }, 503);
+      }
+    }
+    if (pfad === "/api/kursbezug-pruefen" && methode === "POST") {
+      return json(await body.kursbezugPruefen(await request.json()));
+    }
+    if (pfad === "/api/kursbezug" && methode === "POST") {
+      try {
+        return json(body.kursbezugZuordnen(await request.json()));
+      } catch (f) {
+        return json({ fehler: f.message }, 400);
+      }
+    }
+    // Der einzige Endpunkt, der auf einen fremden Dienst wartet — und damit der einzige, der
+    // spürbar dauern kann. Fehler einzelner Papiere stehen im Bericht, nicht im Statuscode:
+    // Ein Abruf, bei dem zehn von zwölf klappen, ist kein gescheiterter Aufruf.
+    if (pfad === "/api/kurse-aktualisieren" && methode === "POST") {
+      try {
+        return json(await body.kurseAktualisieren());
+      } catch (f) {
+        return json({ fehler: f.message }, 503);
+      }
     }
     if (pfad.startsWith("/api/verlauf/") && methode === "GET") {
       const wertpapierId = decodeURIComponent(pfad.slice("/api/verlauf/".length));

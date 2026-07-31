@@ -34,6 +34,12 @@ export function createBackendProxyProvider(basisUrl, apiKey) {
       const query = broker ? `?broker=${encodeURIComponent(broker)}` : "";
       return anfragen(`/api/verlauf/${encodeURIComponent(wertpapierId)}${query}`);
     },
+    kursbezugZuordnen: (daten) => senden("/api/kursbezug", "POST", daten),
+    kursbezugPruefen: (daten) => senden("/api/kursbezug-pruefen", "POST", daten),
+    symboleSuchen: (begriff) => anfragen(`/api/symbol-suche?q=${encodeURIComponent(begriff)}`),
+    // Dieser eine Aufruf wartet auf fremde Dienste und darf deshalb länger dauern als die
+    // anderen — das Zeitlimit im Server liegt bei zehn Sekunden je Quelle.
+    kurseAktualisieren: () => senden("/api/kurse-aktualisieren", "POST", {}),
     dump: () => anfragen("/api/events"),
     restore: (events) => senden("/api/events", "PUT", events),
   };
