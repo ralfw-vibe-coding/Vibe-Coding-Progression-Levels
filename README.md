@@ -49,6 +49,17 @@ Mit Testabdeckung:
 deno task coverage
 ```
 
+## Pre-Commit-Hook einrichten (einmalig)
+
+```bash
+deno task hooks-einrichten
+```
+
+Danach läuft die Testsuite automatisch vor jedem `git commit` — ein rotes Ergebnis verhindert
+den Commit, statt es in der Historie zu verstecken. Der Hook liegt unter `.githooks/` im
+Repository (Git kennt diesen Pfad erst nach der Einrichtung, siehe `Verlauf/Stufe 10.md`) und
+lässt sich im Notfall mit `git commit --no-verify` umgehen.
+
 ## Aufbau
 
 ```

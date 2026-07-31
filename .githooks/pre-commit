@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# Läuft vor jedem Commit und bricht ihn ab, wenn die Testsuite nicht durchläuft. Ein rotes
+# Ergebnis ist dann ein nicht stattgefundener Commit statt eines defekten in der Historie.
+#
+# Aktiv wird dieser Hook erst nach einer einmaligen Einrichtung — Git kennt .githooks/ von
+# sich aus nicht, siehe README.md.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+echo "pre-commit: Testsuite läuft …"
+if ! deno task test; then
+  echo "" >&2
+  echo "pre-commit: Tests schlagen fehl — Commit abgebrochen." >&2
+  echo "Mit 'git commit --no-verify' lässt sich das im Notfall umgehen." >&2
+  exit 1
+fi
