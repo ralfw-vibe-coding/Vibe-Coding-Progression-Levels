@@ -32,24 +32,25 @@ export function createDateiEventStore(pfad) {
   const store = createEventStore(laden());
 
   // Schreiben und Lesen laufen absichtlich synchron. Der Preis ist, dass der Server währenddessen
-  // kurz wartet; der Gewinn ist, dass ein Ereignis nach append() garantiert auf der Platte liegt
-  // und die ganze Domäne synchron bleiben darf. Bei der Größenordnung dieser Anwendung — auch bei
-  // zehntausend Ereignissen — ist das keine spürbare Wartezeit.
-  function schreiben() {
+  // kurz wartet; der Gewinn ist, dass ein Ereignis nach append() garantiert auf der Platte liegt.
+  // Bei der Größenordnung dieser Anwendung — auch bei zehntausend Ereignissen — ist das keine
+  // spürbare Wartezeit. Dass die Methoden trotzdem async sind, liegt allein am gemeinsamen
+  // Vertrag (siehe eventStore.js), nicht an dieser Datei.
+  async function schreiben() {
     const verzeichnis = pfad.slice(0, pfad.lastIndexOf("/"));
     if (verzeichnis) Deno.mkdirSync(verzeichnis, { recursive: true });
-    Deno.writeTextFileSync(pfad, JSON.stringify(store.query(), null, 2));
+    Deno.writeTextFileSync(pfad, JSON.stringify(await store.query(), null, 2));
   }
 
-  function append(eventType, payload) {
-    const event = store.append(eventType, payload);
-    schreiben();
+  async function append(eventType, payload) {
+    const event = await store.append(eventType, payload);
+    await schreiben();
     return event;
   }
 
-  function restore(neueEvents) {
-    store.restore(neueEvents);
-    schreiben();
+  async function restore(neueEvents) {
+    await store.restore(neueEvents);
+    await schreiben();
   }
 
   return { append, query: store.query, restore };

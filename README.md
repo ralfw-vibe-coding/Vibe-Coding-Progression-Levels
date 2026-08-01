@@ -70,15 +70,26 @@ client/    Portal (alles DOM), Body, eine dünne Domäne für Filter und Auswert
 tests/     Getrennt nach server/ und client/.
 ```
 
-Der Zustand liegt als Ereignisliste in der SQLite-Datenbank `server/data/depot.sqlite` und wird
-bei jeder Erfassung fortgeschrieben — ein Export ist dafür nicht mehr nötig. Der Datei-Export
-bleibt trotzdem: für Backups, den Umzug auf ein anderes Gerät und die Weitergabe (siehe
-`Verlauf/Stufe 05.md`). `startbestand.json` im Wurzelverzeichnis ist ein Beispielbestand zum
-Importieren.
+Der Zustand liegt als Ereignisliste in einer Datenbank und wird bei jeder Erfassung
+fortgeschrieben — ein Export ist dafür nicht mehr nötig. Welche Datenbank das ist, entscheidet
+eine einzige Umgebungsvariable:
 
-Wer noch einen Bestand aus der Zeit vor der Datenbank hat (`server/data/depot-events.json`),
-holt ihn einmalig herüber:
+- **Ohne `DATABASE_URL`** (Vorgabe): SQLite in `server/data/depot.sqlite`. Läuft ohne jede
+  Einrichtung, auch offline.
+- **Mit `DATABASE_URL`** (Connection String, z. B. von [Neon](https://neon.tech), in `.env`):
+  Postgres. Server und Client bleiben dieselben — nur die Ereignisse liegen jetzt woanders (siehe
+  `Verlauf/Stufe 11.md`).
+
+Der Datei-Export bleibt in beiden Fällen sinnvoll: für Backups, den Umzug auf ein anderes Gerät
+und die Weitergabe (siehe `Verlauf/Stufe 05.md`). `startbestand.json` im Wurzelverzeichnis ist ein
+Beispielbestand zum Importieren.
+
+Umzüge zwischen den Speicherarten sind je ein eigener, expliziter Schritt:
 
 ```bash
-deno task migriere
+deno task migriere            # JSON-Datei (vor Stufe 8) -> SQLite
+deno task migriere-postgres   # SQLite -> Postgres, braucht DATABASE_URL in .env
 ```
+
+Beide brechen ab, statt einen bereits gefüllten Zielspeicher zu überschreiben (`--ueberschreiben`
+erzwingt es); die jeweilige Quelle bleibt unangetastet liegen.

@@ -1,5 +1,14 @@
 // Domäne: kennt den Event-Store, kapselt den App-State. Commands erzeugen Events,
 // Queries projizieren Events zu einem Modell. Keine Formatierung, keine Darstellung.
+//
+// Seit Stufe 11 ist hier alles async. Nicht, weil die Domäne selbst etwas zu warten hätte —
+// sie rechnet nur —, sondern weil der Event-Store es sein kann: Liegt er in einer Datenbank am
+// anderen Ende einer Leitung, dauert jede Abfrage. Wer wartet, muss warten dürfen, und das
+// zieht sich vom Store durch die Domäne bis ins Portal.
+//
+// Das ist der Preis für Austauschbarkeit, und er ist einmalig: Ob die Ereignisse im
+// Arbeitsspeicher, in einer Datei, in SQLite oder in Postgres liegen, ändert von hier an
+// wieder gar nichts.
 export function createDomain(eventStore) {
   // name, typ und broker beschreiben die Position und kommen nur beim ersten Kauf mit — ein
   // Nachkauf lässt sie weg, seine Position steht ja schon. kaufkurs fehlt, wo er unbekannt
@@ -8,13 +17,13 @@ export function createDomain(eventStore) {
    * @param {{ wertpapierId: string, name?: string, typ?: string, broker?: string | null,
    *           stueck: number, kaufkurs?: number | null, datum: string }} kauf
    */
-  function kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum }) {
-    eventStore.append("kauf", { wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
+  async function kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum }) {
+    await eventStore.append("kauf", { wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
   }
 
   /** @param {{ wertpapierId: string, kurs: number, datum: string }} kursupdate */
-  function kursupdateErfassen({ wertpapierId, kurs, datum }) {
-    eventStore.append("kursupdate", { wertpapierId, kurs, datum });
+  async function kursupdateErfassen({ wertpapierId, kurs, datum }) {
+    await eventStore.append("kursupdate", { wertpapierId, kurs, datum });
   }
 
   // Woher der Kurs dieses Papiers bezogen wird — festgelegt als Ganzes, nicht als loses Symbol.
@@ -34,8 +43,8 @@ export function createDomain(eventStore) {
    * @param {{ wertpapierId: string, quelle: string, symbol: string,
    *           boerse?: string | null, waehrung?: string | null }} bezug
    */
-  function kursbezugZuordnen({ wertpapierId, quelle, symbol, boerse, waehrung }) {
-    eventStore.append("kursbezugZugeordnet", {
+  async function kursbezugZuordnen({ wertpapierId, quelle, symbol, boerse, waehrung }) {
+    await eventStore.append("kursbezugZugeordnet", {
       wertpapierId,
       art: "automatisch",
       quelle: quelle || null,
@@ -52,8 +61,8 @@ export function createDomain(eventStore) {
   //
   // Dazu gehört, wo man den Kurs stattdessen nachschlägt. Ohne diese Angabe müsste man bei
   // jeder Pflege neu suchen — und genau das ist die Arbeit, die hier vermieden werden soll.
-  function alsManuellMarkieren({ wertpapierId, nachschlagenUnter }) {
-    eventStore.append("kursbezugZugeordnet", {
+  async function alsManuellMarkieren({ wertpapierId, nachschlagenUnter }) {
+    await eventStore.append("kursbezugZugeordnet", {
       wertpapierId, art: "manuell",
       nachschlagenUnter: nachschlagenUnter || null,
       quelle: null, symbol: null, boerse: null, waehrung: null,
@@ -61,11 +70,11 @@ export function createDomain(eventStore) {
   }
 
   /** Setzt zurück auf "offen" — weder eingerichtet noch bewusst manuell. */
-  function kursbezugEntfernen({ wertpapierId }) {
-    eventStore.append("kursbezugZugeordnet", { wertpapierId, art: null, quelle: null, symbol: null, boerse: null, waehrung: null });
+  async function kursbezugEntfernen({ wertpapierId }) {
+    await eventStore.append("kursbezugZugeordnet", { wertpapierId, art: null, quelle: null, symbol: null, boerse: null, waehrung: null });
   }
 
-  function positionenAbfragen() {
+  async function positionenAbfragen() {
     // Mehrere "kauf"-Events zu selber wertpapierId UND selbem Broker sind Nachkäufe und
     // werden addiert: Stück summiert sich, Kaufwert ist die Summe der einzelnen
     // Stück×Kaufkurs-Anteile. Derselbe Titel bei verschiedenen Brokern ist dagegen eine
@@ -73,7 +82,7 @@ export function createDomain(eventStore) {
     const kaeufe = new Map();
     const kurse = new Map();
     const kursbezuege = new Map(); // wertpapierId -> Bezug; das jüngste Ereignis gilt
-    for (const e of eventStore.query()) {
+    for (const e of await eventStore.query()) {
       if (e.eventType === "kursbezugZugeordnet") {
         const b = e.payload;
         // Drei Zustände, aus einem Ereignisstrom: eingerichtet, bewusst manuell, oder offen.
@@ -151,13 +160,12 @@ export function createDomain(eventStore) {
   }
 
   /** @param {{ wertpapierId: string, broker?: string | null }} position */
-  function positionsverlaufAbfragen({ wertpapierId, broker }) {
+  async function positionsverlaufAbfragen({ wertpapierId, broker }) {
     // Umgekehrt chronologisch: neuestes Ereignis zuerst (nach fachlichem Datum, bei
     // Gleichstand nach Erfassungsreihenfolge). Kauf-Ereignisse gehören nur zum Verlauf, wenn
     // ihr Broker zur angefragten Position passt — Kursupdates gelten titelweit für alle
     // Broker, da der Kurs nicht vom Broker abhängt.
-    return eventStore
-      .query({ wertpapierId })
+    return (await eventStore.query({ wertpapierId }))
       // Eine Symbol-Zuordnung ist Zubehör für den Kursabruf, kein Vorgang am Depot — sie
       // gehört nicht in die Geschichte einer Position.
       .filter((e) => e.eventType !== "symbolZugeordnet" && e.eventType !== "kursbezugZugeordnet")
@@ -174,12 +182,12 @@ export function createDomain(eventStore) {
   // Im- und Export und kommt im laufenden Betrieb nicht vor; dort werden nur Ereignisse
   // angehängt. Ob dabei etwas gespeichert wird, ist Sache des Event-Store; die Domäne
   // erfährt davon nichts.
-  function restore(events) {
-    eventStore.restore(events);
+  async function restore(events) {
+    await eventStore.restore(events);
   }
 
-  function dump() {
-    return eventStore.query();
+  async function dump() {
+    return await eventStore.query();
   }
 
   return {

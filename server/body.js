@@ -28,18 +28,18 @@ import { nachAussichtSortiert } from "./kursProvider.js";
 export function createBody(domain, kursquellen = {}, wechselkurse = null, symbolSuche = null) {
   // Kein Filter: Filtern ist eine reine Anzeigefrage und war noch nie Sache der Domäne.
   // Es bleibt deshalb dort, wo es hingehört — im Client, nah an der Oberfläche.
-  function depotAbfragen() {
-    return domain.positionenAbfragen();
+  async function depotAbfragen() {
+    return await domain.positionenAbfragen();
   }
 
-  function kaufErfassen(daten) {
-    domain.kaufErfassen(daten);
-    return domain.positionenAbfragen();
+  async function kaufErfassen(daten) {
+    await domain.kaufErfassen(daten);
+    return await domain.positionenAbfragen();
   }
 
-  function kursupdateErfassen(daten) {
-    domain.kursupdateErfassen(daten);
-    return domain.positionenAbfragen();
+  async function kursupdateErfassen(daten) {
+    await domain.kursupdateErfassen(daten);
+    return await domain.positionenAbfragen();
   }
 
   // Workflow: eine neue Position braucht sowohl einen Kauf als auch einen aktuellen Kurs,
@@ -67,14 +67,14 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
     const geprueft = pruefeKennung(wertpapierId);
     if (!geprueft.ok) throw new Error(geprueft.grund);
 
-    domain.kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
-    domain.kursupdateErfassen({ wertpapierId, kurs, datum });
+    await domain.kaufErfassen({ wertpapierId, name, typ, broker, stueck, kaufkurs, datum });
+    await domain.kursupdateErfassen({ wertpapierId, kurs, datum });
 
     // Der Kauf ist damit erfasst — alles Weitere darf ihn nicht mehr gefährden.
     /** @type {SymbolAuskunft} */
     let symbolErgebnis;
     if (kursbezug?.symbol) {
-      domain.kursbezugZuordnen({ wertpapierId, ...kursbezug });
+      await domain.kursbezugZuordnen({ wertpapierId, ...kursbezug });
       symbolErgebnis = { ...kursbezug, herkunft: "eingegeben" };
     } else {
       symbolErgebnis = await symbolErmitteln(wertpapierId, name);
@@ -83,12 +83,12 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
       // Quelle; das jedes Mal als Mangel zu melden wäre Lärm. Nachtragen bleibt jederzeit
       // möglich, dann wird wieder eine automatische daraus.
       if (!symbolErgebnis.symbol) {
-        domain.alsManuellMarkieren({ wertpapierId });
+        await domain.alsManuellMarkieren({ wertpapierId });
         symbolErgebnis = { ...symbolErgebnis, art: "manuell" };
       }
     }
 
-    return { modell: domain.positionenAbfragen(), symbol: symbolErgebnis };
+    return { modell: await domain.positionenAbfragen(), symbol: symbolErgebnis };
   }
 
   // Sucht beim Erfassen selbsttätig ein Kurssymbol. Bewusst als Nachgang zum Kauf und mit
@@ -145,7 +145,7 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
 
       // Übernommen wird der ganze Bezug — samt Quelle, Handelsplatz und Währung. Die
       // Währung stammt aus dem Probeabruf, nicht aus der Suche: Sie ist damit belegt.
-      domain.kursbezugZuordnen({
+      await domain.kursbezugZuordnen({
         wertpapierId,
         quelle: belegt.treffer.quelle,
         symbol: belegt.treffer.symbol,
@@ -196,8 +196,8 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
   }
 
   /** @param {{ wertpapierId: string, broker?: string | null }} position */
-  function positionsverlaufAbfragen({ wertpapierId, broker }) {
-    return domain.positionsverlaufAbfragen({ wertpapierId, broker });
+  async function positionsverlaufAbfragen({ wertpapierId, broker }) {
+    return await domain.positionsverlaufAbfragen({ wertpapierId, broker });
   }
 
   // Sucht Kurssymbole zu einer Eingabe. Gibt der Nutzer eine WKN ein, wird zusätzlich mit der
@@ -249,12 +249,12 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
    *           boerse?: string | null, waehrung?: string | null,
    *           nachschlagenUnter?: string | null }} bezug
    */
-  function kursbezugZuordnen({ wertpapierId, art, quelle, symbol, boerse, waehrung, nachschlagenUnter }) {
-    if (art === "manuell") domain.alsManuellMarkieren({ wertpapierId, nachschlagenUnter: pruefeLink(nachschlagenUnter) });
+  async function kursbezugZuordnen({ wertpapierId, art, quelle, symbol, boerse, waehrung, nachschlagenUnter }) {
+    if (art === "manuell") await domain.alsManuellMarkieren({ wertpapierId, nachschlagenUnter: pruefeLink(nachschlagenUnter) });
     else if (symbol && !quelle) throw new Error("Zu einem Symbol gehört die Quelle, bei der es gilt.");
-    else if (symbol) domain.kursbezugZuordnen({ wertpapierId, quelle, symbol, boerse, waehrung });
-    else domain.kursbezugEntfernen({ wertpapierId });
-    return domain.positionenAbfragen();
+    else if (symbol) await domain.kursbezugZuordnen({ wertpapierId, quelle, symbol, boerse, waehrung });
+    else await domain.kursbezugEntfernen({ wertpapierId });
+    return await domain.positionenAbfragen();
   }
 
   // Nur http(s) wird als Nachschlage-Adresse übernommen. Der Wert landet später als Link in
@@ -281,7 +281,7 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
   // woran es sonst lag. Er wird nicht gespeichert: Er beschreibt diesen einen Abruf, nicht
   // das Depot.
   async function kurseAktualisieren() {
-    const positionen = domain.positionenAbfragen().positionen;
+    const positionen = (await domain.positionenAbfragen()).positionen;
     const bericht = [];
 
     // Nach Quelle gruppieren: Jede Quelle wird einmal gefragt, mit genau ihren Symbolen.
@@ -364,7 +364,7 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
           }
         }
 
-        domain.kursupdateErfassen({ wertpapierId: e.wertpapierId, kurs, datum: heute });
+        await domain.kursupdateErfassen({ wertpapierId: e.wertpapierId, kurs, datum: heute });
         bericht.push({
           ...kennung(e), erfolg: true, kurs, quelle: quellenName,
           umgerechnetAus: ergebnis.waehrung === "EUR" ? null : ergebnis.waehrung,
@@ -372,7 +372,7 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
       }
     }
 
-    return { modell: domain.positionenAbfragen(), bericht };
+    return { modell: await domain.positionenAbfragen(), bericht };
   }
 
   function kennung(e) {
@@ -380,14 +380,14 @@ export function createBody(domain, kursquellen = {}, wechselkurse = null, symbol
   }
 
   // Der vollständige Ereignisbestand, roh — Grundlage für den Export im Client.
-  function dump() {
-    return domain.dump();
+  async function dump() {
+    return await domain.dump();
   }
 
   // Spielt einen kompletten Bestand ein — der Gegenpart zum Import im Client.
-  function restore(events) {
-    domain.restore(events);
-    return domain.positionenAbfragen();
+  async function restore(events) {
+    await domain.restore(events);
+    return await domain.positionenAbfragen();
   }
 
   return {

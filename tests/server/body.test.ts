@@ -40,21 +40,21 @@ Deno.test("neuePositionErfassen reicht broker bis ins Modell durch", async () =>
 Deno.test("kaufErfassen gibt aktualisiertes Modell zurück", async () => {
   const body = neuerBody();
   await body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-  const modell = body.kaufErfassen({ wertpapierId: "A", stueck: 1, kaufkurs: 300, datum: "2026-07-10" });
+  const modell = await body.kaufErfassen({ wertpapierId: "A", stueck: 1, kaufkurs: 300, datum: "2026-07-10" });
   if (modell.positionen[0].stueck !== 2) throw new Error(`erwartet Stück 2 nach Nachkauf, war ${modell.positionen[0].stueck}`);
 });
 
 Deno.test("kursupdateErfassen aktualisiert den Kurs einer bestehenden Position", async () => {
   const body = neuerBody();
   await body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-  const modell = body.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-24" });
+  const modell = await body.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-24" });
   if (modell.positionen[0].kurs !== 150) throw new Error(`erwartet Kurs 150, war ${modell.positionen[0].kurs}`);
 });
 
 Deno.test("positionsverlaufAbfragen reicht bis zur Domäne durch", async () => {
   const body = neuerBody();
   await body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-  const verlauf = body.positionsverlaufAbfragen({ wertpapierId: "A" });
+  const verlauf = await body.positionsverlaufAbfragen({ wertpapierId: "A" });
   if (verlauf.length !== 2) throw new Error(`erwartet 2 Ereignisse (Kauf + Kursupdate), war ${verlauf.length}`);
 });
 
@@ -65,9 +65,9 @@ Deno.test("neuePositionErfassen bei unterschiedlichem Broker legt zusätzliche P
   if (modell.positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${modell.positionen.length}`);
 });
 
-Deno.test("depotAbfragen liefert das Gesamtmodell ohne vorherige Erfassung leer", () => {
+Deno.test("depotAbfragen liefert das Gesamtmodell ohne vorherige Erfassung leer", async () => {
   const body = neuerBody();
-  const modell = body.depotAbfragen();
+  const modell = await body.depotAbfragen();
   if (modell.positionen.length !== 0) throw new Error("erwartet keine Positionen in einem leeren Depot");
   if (modell.depotwert !== 0) throw new Error(`erwartet depotwert 0, war ${modell.depotwert}`);
 });
@@ -75,7 +75,7 @@ Deno.test("depotAbfragen liefert das Gesamtmodell ohne vorherige Erfassung leer"
 Deno.test("dump liefert den vollständigen Ereignisbestand", async () => {
   const body = neuerBody();
   await body.neuePositionErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-  const events = body.dump();
+  const events = await body.dump();
   // Kauf + Kursupdate + die Kennzeichnung als manuell (es gibt hier keine Kursquelle).
   if (events.length !== 3) throw new Error(`erwartet 3 Ereignisse, war ${events.length}`);
   if (events[0].eventType !== "kauf") throw new Error("erwartet zuerst das kauf-Ereignis");
@@ -89,20 +89,20 @@ Deno.test("restore ersetzt den Zustand und gibt das neue Modell zurück", async 
   const body = neuerBody();
   await body.neuePositionErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 1, kurs: 1, datum: "2026-07-01" });
 
-  const modell = body.restore(neueEvents);
+  const modell = await body.restore(neueEvents);
   if (modell.positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${modell.positionen.length}`);
   if (modell.positionen[0].wertpapierId !== "X") throw new Error("alter Bestand darf nicht überleben");
   if (modell.depotwert !== 100) throw new Error(`erwartet depotwert 100, war ${modell.depotwert}`);
 });
 
-Deno.test("nach restore erfasste Ereignisse knüpfen an den übernommenen Bestand an", () => {
+Deno.test("nach restore erfasste Ereignisse knüpfen an den übernommenen Bestand an", async () => {
   const body = neuerBody();
-  body.restore([
+  await body.restore([
     { seq: 7, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "X", name: "Import AG", typ: "Aktie", stueck: 1, kaufkurs: 10, datum: "2026-07-01" } },
   ]);
-  body.kursupdateErfassen({ wertpapierId: "X", kurs: 30, datum: "2026-07-02" });
+  await body.kursupdateErfassen({ wertpapierId: "X", kurs: 30, datum: "2026-07-02" });
 
-  const events = body.dump();
+  const events = await body.dump();
   if (events.length !== 2) throw new Error(`erwartet 2 Ereignisse, war ${events.length}`);
   if (events[1].seq !== 8) throw new Error(`erwartet seq 8 nach übernommener seq 7, war ${events[1].seq}`);
 });
@@ -132,7 +132,7 @@ function eintrag(bericht: any[], wertpapierId: string) {
 Deno.test("ein abgerufener Kurs wird als Kursupdate eingetragen", async () => {
   const body = bodyMitKursquelle({ "APC.DE": 297.6 });
   await body.neuePositionErfassen({ wertpapierId: "US0378331005", name: "Apple", typ: "Aktie", stueck: 3, kaufkurs: 296.8, kurs: 296.8, datum: "2026-07-27" });
-  body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("APC.DE") });
+  await body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("APC.DE") });
 
   const { modell, bericht } = await body.kurseAktualisieren();
   if (modell.positionen[0].kurs !== 297.6) throw new Error(`erwartet Kurs 297.6, war ${modell.positionen[0].kurs}`);
@@ -155,7 +155,7 @@ Deno.test("eine Position, für die nichts gefunden wurde, gilt als manuell — n
 Deno.test("eine Position aus der Zeit vor dem Kursabruf gilt als offen, nicht als manuell", async () => {
   // Altbestand: nie eine Entscheidung getroffen. Das ist eine Aufgabe, kein erledigter Fall.
   const body = bodyMitKursquelle({});
-  body.kaufErfassen({ wertpapierId: "DE000LS9KF55", name: "Zertifikat", typ: "Zertifikat", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await body.kaufErfassen({ wertpapierId: "DE000LS9KF55", name: "Zertifikat", typ: "Zertifikat", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
 
   const { bericht } = await body.kurseAktualisieren();
   const e = eintrag(bericht, "DE000LS9KF55");
@@ -166,7 +166,7 @@ Deno.test("ein Fehlschlag bei einem Papier lässt die anderen unberührt", async
   const body = bodyMitKursquelle({ "APC.DE": 297.6 });
   for (const [id, sym] of [["US0378331005", "APC.DE"], ["DE000EWG2LD7", "EWG2.SG"]]) {
     await body.neuePositionErfassen({ wertpapierId: id, name: id, typ: "Aktie", stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
-    body.kursbezugZuordnen({ wertpapierId: id, ...bezug(sym) });
+    await body.kursbezugZuordnen({ wertpapierId: id, ...bezug(sym) });
   }
 
   const { modell, bericht } = await body.kurseAktualisieren();
@@ -180,7 +180,7 @@ Deno.test("ein Fehlschlag bei einem Papier lässt die anderen unberührt", async
 Deno.test("ein Kurs in Fremdwährung wird umgerechnet", async () => {
   const body = bodyMitKursquelle({ AAPL: { kurs: 100, waehrung: "USD" } }, { USD: 0.9 });
   await body.neuePositionErfassen({ wertpapierId: "US0378331005", name: "Apple", typ: "Aktie", stueck: 1, kaufkurs: 80, kurs: 80, datum: "2026-07-01" });
-  body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("AAPL", "USD") });
+  await body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("AAPL", "USD") });
 
   const { modell, bericht } = await body.kurseAktualisieren();
   if (modell.positionen[0].kurs !== 90) throw new Error(`erwartet 100 USD * 0.9 = 90 EUR, war ${modell.positionen[0].kurs}`);
@@ -191,7 +191,7 @@ Deno.test("scheitert die Umrechnung, wird kein Kurs eingetragen", async () => {
   // Lieber kein Kurs als ein Dollarbetrag, der als Euro im Depot steht.
   const body = bodyMitKursquelle({ AAPL: { kurs: 100, waehrung: "USD" } }, {});
   await body.neuePositionErfassen({ wertpapierId: "US0378331005", name: "Apple", typ: "Aktie", stueck: 1, kaufkurs: 80, kurs: 80, datum: "2026-07-01" });
-  body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("AAPL", "USD") });
+  await body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("AAPL", "USD") });
 
   const { modell, bericht } = await body.kurseAktualisieren();
   if (modell.positionen[0].kurs !== 80) throw new Error(`der alte Kurs muss stehen bleiben, war ${modell.positionen[0].kurs}`);
@@ -204,7 +204,7 @@ Deno.test("dasselbe Wertpapier bei zwei Brokern wird nur einmal abgefragt", asyn
   for (const broker of ["comdirect", "onvista"]) {
     await body.neuePositionErfassen({ wertpapierId: "US0378331005", name: "Apple", typ: "Aktie", broker, stueck: 1, kaufkurs: 100, kurs: 100, datum: "2026-07-01" });
   }
-  body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("APC.DE") });
+  await body.kursbezugZuordnen({ wertpapierId: "US0378331005", ...bezug("APC.DE") });
 
   const { modell } = await body.kurseAktualisieren();
   if (JSON.stringify(quelle.aufrufe) !== JSON.stringify([["APC.DE"]])) {
@@ -364,13 +364,13 @@ Deno.test("eine neue Position mit WKN wird abgelehnt, nicht stillschweigend ange
   }
   if (!gemeldet.includes("WKN")) throw new Error(`erwartet eine Ablehnung mit Begründung, war "${gemeldet}"`);
   // Und nichts darf angelegt worden sein — auch kein halber Kauf.
-  if (body.depotAbfragen().positionen.length !== 0) throw new Error("bei abgelehnter Kennung darf nichts entstehen");
+  if ((await body.depotAbfragen()).positionen.length !== 0) throw new Error("bei abgelehnter Kennung darf nichts entstehen");
 });
 
 Deno.test("zur manuellen Kennzeichnung gehört, wo man den Kurs nachschlägt", async () => {
   const { body } = bodyMitSuche({});
   await body.neuePositionErfassen(kaufDaten);
-  const modell = body.kursbezugZuordnen({
+  const modell = await body.kursbezugZuordnen({
     wertpapierId: kaufDaten.wertpapierId, art: "manuell",
     nachschlagenUnter: "https://www.finanzen.net/zertifikate/auf-wikifolio-index/ls9kf5",
   });
@@ -379,14 +379,14 @@ Deno.test("zur manuellen Kennzeichnung gehört, wo man den Kurs nachschlägt", a
   if (!bezug.nachschlagenUnter?.includes("finanzen.net")) throw new Error("die Adresse muss erhalten bleiben");
 });
 
-Deno.test("als Nachschlage-Adresse wird nur http(s) übernommen", () => {
+Deno.test("als Nachschlage-Adresse wird nur http(s) übernommen", async () => {
   // Der Wert landet als Link in der Oberfläche — ein "javascript:"-Eintrag wäre dort eine
   // Einladung.
   const { body } = bodyMitSuche({});
   for (const boese of ["javascript:alert(1)", "data:text/html,<script>", "kein link"]) {
     let gemeldet = false;
     try {
-      body.kursbezugZuordnen({ wertpapierId: "X", art: "manuell", nachschlagenUnter: boese });
+      await body.kursbezugZuordnen({ wertpapierId: "X", art: "manuell", nachschlagenUnter: boese });
     } catch { gemeldet = true; }
     if (!gemeldet) throw new Error(`"${boese}" hätte abgelehnt werden müssen`);
   }

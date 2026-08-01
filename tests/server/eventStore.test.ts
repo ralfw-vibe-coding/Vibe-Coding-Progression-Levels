@@ -8,14 +8,14 @@ pruefeEventStoreVertrag("Event-Store im Arbeitsspeicher", (initialeEvents = []) 
   store: createEventStore(initialeEvents),
 }));
 
-Deno.test("der Store im Arbeitsspeicher hängt nicht am übergebenen Array", () => {
+Deno.test("der Store im Arbeitsspeicher hängt nicht am übergebenen Array", async () => {
   const initiale = [
     { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A" } },
   ];
   const store = createEventStore(initiale);
   initiale.push({ seq: 2, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "B" } });
 
-  if (store.query().length !== 1) {
+  if ((await store.query()).length !== 1) {
     throw new Error("spätere Änderungen am übergebenen Array dürfen den Store nicht erreichen");
   }
 });

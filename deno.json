@@ -2,8 +2,19 @@
   "tasks": {
     "serve": "deno run --allow-net --allow-read --allow-write --allow-env server/main.js",
     "migriere": "deno run --allow-read --allow-write server/migriere.js",
-    "test": "deno test --allow-read --allow-write tests/",
-    "coverage": "rm -rf coverage && deno test --allow-read --allow-write --coverage=coverage tests/ && deno coverage coverage",
+    "migriere-postgres": "deno run --allow-read --allow-write --allow-net --allow-env server/migriere-postgres.js",
+    "test": "deno test --allow-read --allow-write --allow-net --allow-env tests/",
+    "coverage": "rm -rf coverage && deno test --allow-read --allow-write --allow-net --allow-env --coverage=coverage tests/ && deno coverage coverage",
     "hooks-einrichten": "git config core.hooksPath .githooks && echo 'pre-commit-Hook aktiv: die Testsuite läuft ab jetzt vor jedem Commit.'"
+  },
+  "deploy": {
+    "org": "ralfw-deno",
+    "app": "vibecoding-stepwise"
   }
 }
+
+
+
+
+
+

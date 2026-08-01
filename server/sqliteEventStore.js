@@ -11,8 +11,11 @@ import { DatabaseSync } from "node:sqlite";
 // JavaScript filtern.
 //
 // SQLite ist dabei kein Server, sondern eine Datei — man braucht nichts zu installieren oder zu
-// starten. Trotzdem ist es eine echte Datenbank mit Transaktionen und Abfragesprache, und der
-// Umstieg auf Postgres später (Stufe 11) ändert nur diese Datei.
+// starten. Trotzdem ist es eine echte Datenbank mit Transaktionen und Abfragesprache.
+//
+// Und genau darin liegt der Unterschied zu Postgres (Stufe 11): eingebettet heißt synchron.
+// Eine Datenbank hinter einer Leitung antwortet nicht sofort — deshalb kostete der Umstieg
+// eben nicht nur eine neue Datei, sondern machte den ganzen Vertrag async.
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS events (
@@ -85,7 +88,11 @@ export function createSqliteEventStore(verbindung) {
   const alleLoeschen = db.prepare("DELETE FROM events");
   const mitSeqEinfuegen = db.prepare("INSERT INTO events (seq, eventType, timestamp, payload) VALUES (?, ?, ?, ?)");
 
-  function append(eventType, payload) {
+  // Die drei Methoden sind async, obwohl node:sqlite eingebettet und durchweg synchron ist —
+  // eine Datei antwortet sofort, da gibt es nichts zu warten. Das Schlüsselwort steht hier
+  // allein wegen des gemeinsamen Vertrags (siehe eventStore.js): Sobald eine Ausprägung über
+  // eine Leitung spricht, müssen es alle können. Am Innenleben ändert es nichts.
+  async function append(eventType, payload) {
     const timestamp = new Date().toISOString(); // rein technisch, keine fachliche Bedeutung
     const { lastInsertRowid } = einfuegen.run(eventType, timestamp, JSON.stringify(payload));
     return zuEreignis(einzelnLesen.get(Number(lastInsertRowid)));
@@ -94,7 +101,7 @@ export function createSqliteEventStore(verbindung) {
   // Gefiltert wird jetzt in der Datenbank statt in JavaScript — der eigentliche Gewinn dieser
   // Stufe. Bei einem Verlauf werden nur noch die Zeilen gelesen, die auch gebraucht werden,
   // statt jedes Mal den gesamten Bestand.
-  function query(filter) {
+  async function query(filter) {
     const zeilen = !filter || filter.wertpapierId == null
       ? alleLesen.all()
       : nachWertpapierLesen.all(filter.wertpapierId);
@@ -105,7 +112,7 @@ export function createSqliteEventStore(verbindung) {
   // unverändert — sie wurden früher schon einmal vergeben und sollen es bleiben. Löschen und
   // Neuschreiben laufen in einer Transaktion: Entweder gilt der neue Bestand ganz, oder es
   // bleibt beim alten. Ein halb ersetztes Depot kann es nicht geben.
-  function restore(neueEvents) {
+  async function restore(neueEvents) {
     db.exec("BEGIN");
     try {
       alleLoeschen.run();

@@ -5,14 +5,14 @@ function neueDomaene() {
   return createDomain(createEventStore());
 }
 
-Deno.test("gleicher Titel bei unterschiedlichem Broker ergibt zwei eigenständige Positionen", () => {
+Deno.test("gleicher Titel bei unterschiedlichem Broker ergibt zwei eigenständige Positionen", async () => {
   // Broker gehört zur Identität einer Position, nicht nur zur Beschriftung: derselbe Titel
   // lässt sich bei mehreren Brokern gleichzeitig halten.
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   if (positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${positionen.length}`);
   const broker = positionen.map((p: any) => p.broker).sort();
   if (JSON.stringify(broker) !== JSON.stringify(["Interactive Brokers", "comdirect"])) {
@@ -20,43 +20,43 @@ Deno.test("gleicher Titel bei unterschiedlichem Broker ergibt zwei eigenständig
   }
 });
 
-Deno.test("Nachkauf mit gleichem Broker wird zur selben Position addiert", () => {
+Deno.test("Nachkauf mit gleichem Broker wird zur selben Position addiert", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "A", broker: "comdirect", stueck: 1, kaufkurs: 110, datum: "2026-07-10" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", broker: "comdirect", stueck: 1, kaufkurs: 110, datum: "2026-07-10" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   if (positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${positionen.length}`);
   if (positionen[0].stueck !== 2) throw new Error(`erwartet Stück 2, war ${positionen[0].stueck}`);
   if (positionen[0].broker !== "comdirect") throw new Error(`erwartet broker "comdirect", war ${positionen[0].broker}`);
 });
 
-Deno.test("broker ist optional und wird als null geführt, wenn nicht angegeben", () => {
+Deno.test("broker ist optional und wird als null geführt, wenn nicht angegeben", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  const { positionen } = domain.positionenAbfragen();
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  const { positionen } = await domain.positionenAbfragen();
   if (positionen[0].broker !== null) throw new Error(`erwartet broker null, war ${positionen[0].broker}`);
 });
 
-Deno.test("bekannteBroker listet jeden vorkommenden Broker genau einmal, sortiert", () => {
+Deno.test("bekannteBroker listet jeden vorkommenden Broker genau einmal, sortiert", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "C", name: "C", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "D", name: "D", typ: "Aktie", stueck: 1, kaufkurs: 10, datum: "2026-07-01" }); // ohne broker
+  await domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "C", name: "C", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 10, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "D", name: "D", typ: "Aktie", stueck: 1, kaufkurs: 10, datum: "2026-07-01" }); // ohne broker
 
-  const { bekannteBroker } = domain.positionenAbfragen();
+  const { bekannteBroker } = await domain.positionenAbfragen();
   if (JSON.stringify(bekannteBroker) !== JSON.stringify(["Interactive Brokers", "comdirect"])) {
     throw new Error(`erwartet ["Interactive Brokers","comdirect"] sortiert, war ${JSON.stringify(bekannteBroker)}`);
   }
 });
 
-Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Position", () => {
+Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Position", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 10, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 10, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
 
-  const { depotwert, kaufwertGesamt, positionen } = domain.positionenAbfragen();
+  const { depotwert, kaufwertGesamt, positionen } = await domain.positionenAbfragen();
   const p = positionen[0];
 
   if (p.wert !== 1200) throw new Error(`erwartet wert 1200, war ${p.wert}`);
@@ -67,14 +67,14 @@ Deno.test("kauf + kursupdate ergeben Wert, Kaufwert und Veränderung einer Posit
   if (kaufwertGesamt !== 1000) throw new Error(`erwartet kaufwertGesamt 1000, war ${kaufwertGesamt}`);
 });
 
-Deno.test("anteilAmDepot mehrerer Positionen summiert sich zu 100 Prozent", () => {
+Deno.test("anteilAmDepot mehrerer Positionen summiert sich zu 100 Prozent", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", stueck: 1, kaufkurs: 300, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "B", kurs: 300, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "A", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "B", name: "B", typ: "Aktie", stueck: 1, kaufkurs: 300, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "B", kurs: 300, datum: "2026-07-01" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   const summe = positionen.reduce((s: number, p: any) => s + p.anteilAmDepot, 0);
   if (Math.abs(summe - 100) > 1e-9) throw new Error(`erwartet Summe 100, war ${summe}`);
 
@@ -82,13 +82,13 @@ Deno.test("anteilAmDepot mehrerer Positionen summiert sich zu 100 Prozent", () =
   if (Math.abs(a.anteilAmDepot - 25) > 1e-9) throw new Error(`erwartet 25% für A, war ${a.anteilAmDepot}`);
 });
 
-Deno.test("mehrere kauf-Events derselben wertpapierId addieren sich (Nachkauf)", () => {
+Deno.test("mehrere kauf-Events derselben wertpapierId addieren sich (Nachkauf)", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "A", stueck: 1, kaufkurs: 300, datum: "2026-07-10" }); // Nachkauf, kein name/typ nötig
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", stueck: 1, kaufkurs: 300, datum: "2026-07-10" }); // Nachkauf, kein name/typ nötig
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   const p = positionen[0];
 
   if (p.stueck !== 2) throw new Error(`erwartet Stück 2, war ${p.stueck}`);
@@ -97,74 +97,74 @@ Deno.test("mehrere kauf-Events derselben wertpapierId addieren sich (Nachkauf)",
   if (p.name !== "Test AG") throw new Error("Name muss vom ersten Kauf-Event übernommen werden");
 });
 
-Deno.test("ein Kursupdate mit früherem Datum überschreibt nicht das spätere", () => {
+Deno.test("ein Kursupdate mit früherem Datum überschreibt nicht das spätere", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24T11:12:25" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 1, datum: "2020-01-01" }); // absichtlich früher
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 500, datum: "2026-07-24T11:12:25" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 1, datum: "2020-01-01" }); // absichtlich früher
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   const p = positionen[0];
   if (p.kurs !== 500) throw new Error(`erwartet weiterhin Kurs 500, war ${p.kurs}`);
 });
 
-Deno.test("bei zwei Kursupdates mit gleichem Datum gewinnt das zuletzt erfasste (per seq)", () => {
+Deno.test("bei zwei Kursupdates mit gleichem Datum gewinnt das zuletzt erfasste (per seq)", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-27" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 292.55, datum: "2026-07-27" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 297, datum: "2026-07-27" }); // gleicher Tag, später erfasst
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-27" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 292.55, datum: "2026-07-27" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 297, datum: "2026-07-27" }); // gleicher Tag, später erfasst
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   const p = positionen[0];
   if (p.kurs !== 297) throw new Error(`erwartet Kurs 297 (zuletzt erfasst), war ${p.kurs}`);
 });
 
-Deno.test("unbekannter Kaufkurs führt zu kaufwert=null statt einer erfundenen Zahl", () => {
+Deno.test("unbekannter Kaufkurs führt zu kaufwert=null statt einer erfundenen Zahl", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Wertloses Papier", typ: "Aktie", stueck: 1, kaufkurs: null, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 0, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Wertloses Papier", typ: "Aktie", stueck: 1, kaufkurs: null, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 0, datum: "2026-07-01" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   const p = positionen[0];
   if (p.kaufwert !== null) throw new Error(`erwartet kaufwert null, war ${p.kaufwert}`);
   if (p.diffPct !== null) throw new Error(`erwartet diffPct null, war ${p.diffPct}`);
   if (p.wert !== 0) throw new Error(`erwartet wert 0, war ${p.wert}`);
 });
 
-Deno.test("ohne Kursupdate ist der Wert 0", () => {
+Deno.test("ohne Kursupdate ist der Wert 0", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 5, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 5, kaufkurs: 100, datum: "2026-07-01" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   if (positionen[0].wert !== 0) throw new Error(`erwartet wert 0, war ${positionen[0].wert}`);
 });
 
-Deno.test("positionsverlaufAbfragen liefert Events neueste zuerst", () => {
+Deno.test("positionsverlaufAbfragen liefert Events neueste zuerst", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 120, datum: "2026-07-24" });
 
-  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A" });
+  const verlauf = await domain.positionsverlaufAbfragen({ wertpapierId: "A" });
   if (verlauf.length !== 3) throw new Error(`erwartet 3 Ereignisse, war ${verlauf.length}`);
   if (verlauf[0].datum !== "2026-07-24") throw new Error("neuestes Ereignis muss zuerst stehen");
   if (verlauf[2].datum !== "2026-07-01") throw new Error("ältestes Ereignis muss zuletzt stehen");
 });
 
-Deno.test("positionsverlaufAbfragen für unbekannte wertpapierId liefert leeres Array", () => {
+Deno.test("positionsverlaufAbfragen für unbekannte wertpapierId liefert leeres Array", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "UNBEKANNT" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  const verlauf = await domain.positionsverlaufAbfragen({ wertpapierId: "UNBEKANNT" });
   if (verlauf.length !== 0) throw new Error(`erwartet leeres Array, war ${verlauf.length} Einträge`);
 });
 
-Deno.test("positionsverlaufAbfragen zeigt nur Käufe des angefragten Brokers, Kursupdates aber titelweit", () => {
+Deno.test("positionsverlaufAbfragen zeigt nur Käufe des angefragten Brokers, Kursupdates aber titelweit", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 105, datum: "2026-07-02" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "Interactive Brokers", stueck: 1, kaufkurs: 105, datum: "2026-07-02" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
 
-  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A", broker: "comdirect" });
+  const verlauf = await domain.positionsverlaufAbfragen({ wertpapierId: "A", broker: "comdirect" });
   const kaeufe = verlauf.filter((e: any) => e.eventType === "kauf");
   if (kaeufe.length !== 1) throw new Error(`erwartet 1 Kauf-Ereignis für comdirect, war ${kaeufe.length}`);
   if (kaeufe[0].broker !== "comdirect") throw new Error(`erwartet Kauf bei comdirect, war ${kaeufe[0].broker}`);
@@ -172,68 +172,68 @@ Deno.test("positionsverlaufAbfragen zeigt nur Käufe des angefragten Brokers, Ku
   if (kursupdates.length !== 1) throw new Error(`erwartet 1 Kursupdate (titelweit, unabhängig vom Broker), war ${kursupdates.length}`);
 });
 
-Deno.test("dump liefert die rohen Ereignisse unverändert", () => {
+Deno.test("dump liefert die rohen Ereignisse unverändert", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
-  const events = domain.dump();
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 110, datum: "2026-07-10" });
+  const events = await domain.dump();
   if (events.length !== 2) throw new Error(`erwartet 2 Ereignisse, war ${events.length}`);
   if (events[0].eventType !== "kauf" || events[1].eventType !== "kursupdate") {
     throw new Error("Reihenfolge/Typ der ausgelesenen Ereignisse stimmt nicht");
   }
 });
 
-Deno.test("restore übernimmt einen zuvor per dump ausgelesenen Bestand identisch", () => {
+Deno.test("restore übernimmt einen zuvor per dump ausgelesenen Bestand identisch", async () => {
   const quelle = neueDomaene();
-  quelle.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 3, kaufkurs: 100, datum: "2026-07-01" });
-  quelle.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-10" });
-  const ausgelesen = quelle.dump();
+  await quelle.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 3, kaufkurs: 100, datum: "2026-07-01" });
+  await quelle.kursupdateErfassen({ wertpapierId: "A", kurs: 150, datum: "2026-07-10" });
+  const ausgelesen = await quelle.dump();
 
   const ziel = neueDomaene();
-  ziel.restore(ausgelesen);
-  const { positionen } = ziel.positionenAbfragen();
+  await ziel.restore(ausgelesen);
+  const { positionen } = await ziel.positionenAbfragen();
   if (positionen.length !== 1) throw new Error(`erwartet 1 Position, war ${positionen.length}`);
   if (positionen[0].wert !== 450) throw new Error(`erwartet wert 450, war ${positionen[0].wert}`);
-  if (JSON.stringify(ziel.dump()) !== JSON.stringify(ausgelesen)) {
+  if (JSON.stringify(await ziel.dump()) !== JSON.stringify(ausgelesen)) {
     throw new Error("dump nach restore muss dem übernommenen Bestand entsprechen");
   }
 });
 
-Deno.test("restore verwirft den bisherigen Zustand vollständig", () => {
+Deno.test("restore verwirft den bisherigen Zustand vollständig", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursupdateErfassen({ wertpapierId: "ALT", kurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "ALT", name: "Alt AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursupdateErfassen({ wertpapierId: "ALT", kurs: 100, datum: "2026-07-01" });
 
-  domain.restore([
+  await domain.restore([
     { seq: 1, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU", name: "Neu AG", typ: "Aktie", stueck: 2, kaufkurs: 10, datum: "2026-07-01" } },
     { seq: 2, eventType: "kursupdate", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "NEU", kurs: 20, datum: "2026-07-02" } },
   ]);
 
-  const { positionen, depotwert } = domain.positionenAbfragen();
+  const { positionen, depotwert } = await domain.positionenAbfragen();
   if (positionen.length !== 1) throw new Error(`erwartet nur die neue Position, war ${positionen.length}`);
   if (positionen[0].wertpapierId !== "NEU") throw new Error("alte Position darf nicht überleben");
   if (depotwert !== 40) throw new Error(`erwartet depotwert 40, war ${depotwert}`);
 });
 
-Deno.test("nach restore erfasste Ereignisse knüpfen an den importierten Bestand an", () => {
+Deno.test("nach restore erfasste Ereignisse knüpfen an den importierten Bestand an", async () => {
   const domain = neueDomaene();
-  domain.restore([
+  await domain.restore([
     { seq: 7, eventType: "kauf", timestamp: "2020-01-01T00:00:00.000Z", payload: { wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" } },
   ]);
-  domain.kursupdateErfassen({ wertpapierId: "A", kurs: 200, datum: "2026-07-10" });
+  await domain.kursupdateErfassen({ wertpapierId: "A", kurs: 200, datum: "2026-07-10" });
 
-  const events = domain.dump();
+  const events = await domain.dump();
   if (events.length !== 2) throw new Error(`erwartet 2 Ereignisse, war ${events.length}`);
   if (events[1].seq !== 8) throw new Error(`erwartet seq 8 für das neue Ereignis, war ${events[1].seq}`);
 });
 
-Deno.test("der Kursbezug hängt am Wertpapier, nicht an der Position", () => {
+Deno.test("der Kursbezug hängt am Wertpapier, nicht an der Position", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "onvista", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "comdirect", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", broker: "onvista", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
 
-  const { positionen } = domain.positionenAbfragen();
+  const { positionen } = await domain.positionenAbfragen();
   if (positionen.length !== 2) throw new Error(`erwartet 2 Positionen, war ${positionen.length}`);
   // Dasselbe Papier hat denselben Kurs, egal bei welchem Broker es liegt.
   if (positionen.some((p: any) => p.kursbezug?.symbol !== "APC.DE")) {
@@ -241,28 +241,28 @@ Deno.test("der Kursbezug hängt am Wertpapier, nicht an der Position", () => {
   }
 });
 
-Deno.test("ohne Zuordnung bleibt der Kursbezug null", () => {
+Deno.test("ohne Zuordnung bleibt der Kursbezug null", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  if (domain.positionenAbfragen().positionen[0].kursbezug !== null) throw new Error("erwartet keinen Kursbezug");
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  if ((await domain.positionenAbfragen()).positionen[0].kursbezug !== null) throw new Error("erwartet keinen Kursbezug");
 });
 
-Deno.test("eine spätere Zuordnung überschreibt die frühere", () => {
+Deno.test("eine spätere Zuordnung überschreibt die frühere", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "FALSCH" });
-  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
-  if (domain.positionenAbfragen().positionen[0].kursbezug?.symbol !== "APC.DE") {
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "FALSCH" });
+  await domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+  if ((await domain.positionenAbfragen()).positionen[0].kursbezug?.symbol !== "APC.DE") {
     throw new Error("die jüngste Zuordnung muss gelten — Korrigieren muss möglich sein");
   }
 });
 
-Deno.test("ein Kursbezug taucht nicht im Verlauf der Position auf", () => {
+Deno.test("ein Kursbezug taucht nicht im Verlauf der Position auf", async () => {
   const domain = neueDomaene();
-  domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
-  domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
+  await domain.kaufErfassen({ wertpapierId: "A", name: "Test AG", typ: "Aktie", stueck: 1, kaufkurs: 100, datum: "2026-07-01" });
+  await domain.kursbezugZuordnen({ wertpapierId: "A", quelle: "Q", symbol: "APC.DE" });
 
-  const verlauf = domain.positionsverlaufAbfragen({ wertpapierId: "A" });
+  const verlauf = await domain.positionsverlaufAbfragen({ wertpapierId: "A" });
   if (verlauf.length !== 1) throw new Error(`erwartet nur den Kauf, war ${verlauf.length} Einträge`);
   if (verlauf[0].eventType !== "kauf") throw new Error("nur fachliche Vorgänge gehören in den Verlauf");
 });

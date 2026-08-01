@@ -35,21 +35,21 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
     const methode = request.method;
 
     if (pfad === "/api/depot" && methode === "GET") {
-      return json(body.depotAbfragen());
+      return json(await body.depotAbfragen());
     }
     if (pfad === "/api/events" && methode === "GET") {
-      return json(body.dump());
+      return json(await body.dump());
     }
     if (pfad === "/api/events" && methode === "PUT") {
       const events = await request.json();
       if (!Array.isArray(events)) return json({ fehler: "Erwartet wird eine Liste von Ereignissen." }, 400);
-      return json(body.restore(events));
+      return json(await body.restore(events));
     }
     if (pfad === "/api/kauf" && methode === "POST") {
-      return json(body.kaufErfassen(await request.json()));
+      return json(await body.kaufErfassen(await request.json()));
     }
     if (pfad === "/api/kursupdate" && methode === "POST") {
-      return json(body.kursupdateErfassen(await request.json()));
+      return json(await body.kursupdateErfassen(await request.json()));
     }
     if (pfad === "/api/neue-position" && methode === "POST") {
       try {
@@ -71,7 +71,7 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
     }
     if (pfad === "/api/kursbezug" && methode === "POST") {
       try {
-        return json(body.kursbezugZuordnen(await request.json()));
+        return json(await body.kursbezugZuordnen(await request.json()));
       } catch (f) {
         return json({ fehler: f.message }, 400);
       }
@@ -89,7 +89,7 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
     if (pfad.startsWith("/api/verlauf/") && methode === "GET") {
       const wertpapierId = decodeURIComponent(pfad.slice("/api/verlauf/".length));
       const broker = new URL(request.url).searchParams.get("broker");
-      return json(body.positionsverlaufAbfragen({ wertpapierId, broker }));
+      return json(await body.positionsverlaufAbfragen({ wertpapierId, broker }));
     }
 
     return json({ fehler: `Unbekannter Endpunkt: ${methode} ${pfad}` }, 404);

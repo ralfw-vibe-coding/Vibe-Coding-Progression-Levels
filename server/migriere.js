@@ -36,7 +36,7 @@ if (!Array.isArray(events)) {
 }
 
 const store = createSqliteEventStore(DATENBANK);
-const vorhanden = store.query();
+const vorhanden = await store.query();
 
 // Einen vorhandenen Bestand zu überschreiben wäre der einzige Weg, hier Daten zu verlieren —
 // also passiert es nicht ohne ausdrückliche Ansage.
@@ -46,8 +46,8 @@ if (vorhanden.length > 0 && !Deno.args.includes("--ueberschreiben")) {
   Deno.exit(1);
 }
 
-store.restore(events);
+await store.restore(events);
 
-const danach = store.query();
+const danach = await store.query();
 console.log(`${danach.length} Ereignisse übernommen: ${JSON_DATEI} -> ${DATENBANK}`);
 console.log(`Die JSON-Datei bleibt unangetastet und kann als Sicherung liegen bleiben.`);
