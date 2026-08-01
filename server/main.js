@@ -61,8 +61,14 @@ const wechselkurse = createWechselkursProvider();
 
 const body = createBody(domain, kursquellen, wechselkurse, symbolSuche);
 
-const apiKeys = createApiKeyProvider(`${DATEN}/api-key.txt`);
-const apiKey = await apiKeys.holenOderErzeugen();
+// Der Datei-Provider setzt eine eigene, dauerhafte Platte voraus — genau die Annahme, die
+// Stufe 11 für die Ereignisse schon aufgegeben hat. Ein deployter Server hat keine: Jeder
+// Neustart bekäme einen neuen Schlüssel, jeder gespeicherte curl-Aufruf bräche. Deshalb dasselbe
+// Muster wie bei DATABASE_URL — ist BACKEND_API_KEY gesetzt, gilt er, ohne dass je eine Datei
+// angefasst wird. Lokal ohne diese Variable bleibt der bisherige Weg bestehen: einmal erzeugen,
+// in server/data/api-key.txt ablegen, bei jedem Start wiederverwenden.
+const vorgegebenerApiKey = Deno.env.get("BACKEND_API_KEY");
+const apiKey = vorgegebenerApiKey ?? await createApiKeyProvider(`${DATEN}/api-key.txt`).holenOderErzeugen();
 const portal = createPortal(body, apiKey, CLIENT);
 
 console.log(`Mein Depot läuft auf http://localhost:${PORT}`);
@@ -74,7 +80,7 @@ console.log(`Symbolsuche:  ${symbolSuche.name}`);
 for (const [name, variable] of [["Twelve Data", "TWELVE_DATA_API_KEY"], ["Finnhub", "FINNHUB_API_KEY"]]) {
   if (!Deno.env.get(variable)) console.log(`  (${name} fehlt: ${variable} nicht gesetzt)`);
 }
-console.log(`API-Schlüssel: ${apiKey}`);
+console.log(`API-Schlüssel: ${apiKey}${vorgegebenerApiKey ? " (BACKEND_API_KEY)" : ` (${DATEN}/api-key.txt)`}`);
 console.log(`Beispiel: curl -H "X-API-Key: ${apiKey}" http://localhost:${PORT}/api/depot`);
 
 Deno.serve({ port: PORT }, (request) => portal.behandeln(request));
