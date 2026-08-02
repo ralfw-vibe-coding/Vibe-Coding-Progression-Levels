@@ -3,6 +3,10 @@ import { createDateiEventStore } from "../../server/dateiEventStore.js";
 import { createDomain } from "../../server/domain.js";
 import { createBody } from "../../server/body.js";
 import { createPortal } from "../../server/portal.js";
+import { createNutzerVerzeichnis } from "../../server/nutzerVerzeichnis.js";
+import { createSimulierterMailProvider } from "../../server/resendMailProvider.js";
+import { createSitzungsToken } from "../../server/sitzungsToken.js";
+import { createAnmeldung } from "../../server/anmeldung.js";
 
 const SCHLUESSEL = "test-schluessel";
 
@@ -119,14 +123,16 @@ Deno.test("ein unbekannter API-Endpunkt antwortet mit 404", async () => {
   await antwort.body?.cancel();
 });
 
-Deno.test("die ausgelieferte Seite bekommt den API-Schlüssel mitgegeben", async () => {
+// Bis Stufe 12 stand hier das Gegenteil: dass der Schlüssel beim Ausliefern in die Seite
+// geschrieben *wird*. Unter einer öffentlichen Adresse war das ein Leck — jeder Besucher bekam
+// vollen Zugriff geschenkt. Der Test hat den Zustand also korrekt beschrieben und ihn dadurch
+// festgeschrieben; nur war der Zustand falsch. Jetzt beschreibt er die Umkehrung.
+Deno.test("die ausgelieferte Seite enthält kein Geheimnis", async () => {
   const portal = neuesPortal();
   const antwort = await portal.behandeln(anfrage("/"));
   if (antwort.status !== 200) throw new Error(`erwartet 200, war ${antwort.status}`);
   const html = await antwort.text();
-  if (!html.includes(`window.__API_KEY__ = "${SCHLUESSEL}"`)) {
-    throw new Error("der Schlüssel muss beim Ausliefern in die Seite geschrieben werden");
-  }
+  if (html.includes(SCHLUESSEL)) throw new Error("der API-Schlüssel darf nicht in der Seite stehen");
 });
 
 Deno.test("Client-Dateien werden ausgeliefert, aber nichts außerhalb des Verzeichnisses", async () => {
@@ -141,4 +147,149 @@ Deno.test("Client-Dateien werden ausgeliefert, aber nichts außerhalb des Verzei
   const ausbruch = await portal.behandeln(anfrage("/../server/main.js"));
   if (ausbruch.status !== 404) throw new Error(`erwartet 404 für einen Ausbruchsversuch, war ${ausbruch.status}`);
   await ausbruch.body?.cancel();
+});
+
+// --- Anmeldung, Token und Berechtigung ------------------------------------------------------
+
+const ADMIN = "chef@example.com";
+const GEHEIMNIS = "u5Hmt2sXhroxzSp3Vl5IuB5XDpQdgd3bgzSlsL3q4dM=";
+
+async function portalMitAnmeldung({ zugelassene = [] as string[] } = {}) {
+  const verzeichnis = createNutzerVerzeichnis(zugelassene);
+  const mail = createSimulierterMailProvider();
+  const token = await createSitzungsToken(GEHEIMNIS);
+  const anmeldung = createAnmeldung(verzeichnis, mail, token, { adminEmail: ADMIN });
+  const body = createBody(createDomain(createEventStore()));
+  return {
+    portal: createPortal(body, SCHLUESSEL, `${Deno.cwd()}/client`, anmeldung),
+    mail,
+    token,
+    anmeldung,
+  };
+}
+
+// Ohne Ausweis, für die offenen Endpunkte.
+function offeneAnfrage(pfad: string, daten: unknown) {
+  return new Request(`http://localhost${pfad}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(daten),
+  });
+}
+
+function mitToken(pfad: string, token: string, optionen: RequestInit = {}) {
+  return new Request(`http://localhost${pfad}`, {
+    ...optionen,
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+  });
+}
+
+async function angemeldetAls(p: any, email: string) {
+  await p.portal.behandeln(offeneAnfrage("/api/anmeldung/code", { email }));
+  const code = p.mail.gesendet.at(-1).betreff.match(/(\d{6})/)[1];
+  const antwort = await p.portal.behandeln(offeneAnfrage("/api/anmeldung/einloesen", { email, code }));
+  return (await antwort.json()).token;
+}
+
+// Das Tor gegen künftige Endpunkte: Wer einen neuen /api/-Pfad ergänzt, ohne ihn bewusst in die
+// Liste der offenen aufzunehmen, bekommt hier einen roten Test statt einer offenen Tür.
+Deno.test("jeder Endpunkt außer den Anmeldungen verlangt einen Ausweis", async () => {
+  const { portal } = await portalMitAnmeldung();
+  const geschuetzt = [
+    ["/api/depot", "GET"], ["/api/events", "GET"], ["/api/events", "PUT"],
+    ["/api/kauf", "POST"], ["/api/kursupdate", "POST"], ["/api/neue-position", "POST"],
+    ["/api/symbol-suche?q=x", "GET"], ["/api/kursbezug", "POST"], ["/api/kursbezug-pruefen", "POST"],
+    ["/api/kurse-aktualisieren", "POST"], ["/api/verlauf/A", "GET"], ["/api/ich", "GET"],
+    ["/api/nutzer", "GET"], ["/api/nutzer", "POST"], ["/api/nutzer/a@b.de", "DELETE"],
+  ];
+  for (const [pfad, methode] of geschuetzt) {
+    const antwort = await portal.behandeln(
+      new Request(`http://localhost${pfad}`, { method: methode, headers: { "content-type": "application/json" }, body: methode === "GET" || methode === "DELETE" ? null : "{}" }),
+    );
+    await antwort.body?.cancel();
+    if (antwort.status !== 401) throw new Error(`${methode} ${pfad}: erwartet 401, war ${antwort.status}`);
+  }
+});
+
+Deno.test("die beiden Anmeldeendpunkte sind ohne Ausweis erreichbar", async () => {
+  const { portal } = await portalMitAnmeldung();
+  for (const [pfad, erwartet] of [["/api/anmeldung/code", 404], ["/api/anmeldung/einloesen", 401]]) {
+    const antwort = await portal.behandeln(offeneAnfrage(pfad as string, { email: "fremd@example.com", code: "x" }));
+    await antwort.body?.cancel();
+    // Nicht 401 wegen fehlenden Ausweises, sondern die fachliche Antwort des Endpunkts selbst.
+    if (antwort.status !== erwartet) throw new Error(`${pfad}: erwartet ${erwartet}, war ${antwort.status}`);
+  }
+});
+
+Deno.test("mit gültigem Token liefert /api/depot das Modell", async () => {
+  const p = await portalMitAnmeldung();
+  const token = await angemeldetAls(p, ADMIN);
+  const antwort = await p.portal.behandeln(mitToken("/api/depot", token));
+  if (antwort.status !== 200) throw new Error(`erwartet 200, war ${antwort.status}`);
+  await antwort.body?.cancel();
+});
+
+Deno.test("ein verfälschtes Token wird abgelehnt", async () => {
+  const p = await portalMitAnmeldung();
+  const token = await angemeldetAls(p, ADMIN);
+  const antwort = await p.portal.behandeln(mitToken("/api/depot", `${token}x`));
+  await antwort.body?.cancel();
+  if (antwort.status !== 401) throw new Error(`erwartet 401, war ${antwort.status}`);
+});
+
+Deno.test("/api/ich nennt Adresse und Verwalterstatus", async () => {
+  const p = await portalMitAnmeldung({ zugelassene: ["partner@example.com"] });
+
+  const alsAdmin = await p.portal.behandeln(mitToken("/api/ich", await angemeldetAls(p, ADMIN)));
+  const ich = await alsAdmin.json();
+  if (ich.email !== ADMIN || ich.istAdmin !== true) throw new Error(`unerwartet: ${JSON.stringify(ich)}`);
+
+  const alsPartner = await p.portal.behandeln(mitToken("/api/ich", await angemeldetAls(p, "partner@example.com")));
+  const partner = await alsPartner.json();
+  if (partner.istAdmin !== false) throw new Error("ein gewöhnlicher Nutzer ist kein Verwalter");
+});
+
+// 403 statt 401: erkannt, aber nicht befugt.
+Deno.test("die Nutzerverwaltung ist für gewöhnliche Nutzer gesperrt", async () => {
+  const p = await portalMitAnmeldung({ zugelassene: ["partner@example.com"] });
+  const token = await angemeldetAls(p, "partner@example.com");
+  const antwort = await p.portal.behandeln(mitToken("/api/nutzer", token));
+  await antwort.body?.cancel();
+  if (antwort.status !== 403) throw new Error(`erwartet 403, war ${antwort.status}`);
+});
+
+Deno.test("der API-Schlüssel gilt als Verwalter und darf die Liste pflegen", async () => {
+  // Wer den Schlüssel hat, betreibt die Anwendung — ihm die Verwaltung zu verweigern hieße,
+  // dass sich die Liste per Skript nicht in Gang bringen ließe.
+  const { portal } = await portalMitAnmeldung();
+  const angelegt = await portal.behandeln(anfrage("/api/nutzer", { method: "POST", body: JSON.stringify({ email: "neu@example.com" }) }));
+  const liste = await angelegt.json();
+  if (liste.length !== 1 || liste[0].email !== "neu@example.com") throw new Error(`unerwartet: ${JSON.stringify(liste)}`);
+
+  const entfernt = await portal.behandeln(anfrage("/api/nutzer/neu%40example.com", { method: "DELETE" }));
+  if ((await entfernt.json()).length !== 0) throw new Error("das Entfernen muss wirken");
+});
+
+// Der Grund, warum bei jeder Anfrage geprüft wird, ob die Adresse noch zugelassen ist — und
+// nicht nur, ob das Token echt ist.
+Deno.test("ein gültiges Token einer gesperrten Adresse verliert sofort seine Wirkung", async () => {
+  const p = await portalMitAnmeldung({ zugelassene: ["partner@example.com"] });
+  const token = await angemeldetAls(p, "partner@example.com");
+
+  const vorher = await p.portal.behandeln(mitToken("/api/depot", token));
+  await vorher.body?.cancel();
+  if (vorher.status !== 200) throw new Error("vor dem Sperren muss der Zugriff klappen");
+
+  await p.anmeldung.sperren("partner@example.com");
+
+  const nachher = await p.portal.behandeln(mitToken("/api/depot", token));
+  await nachher.body?.cancel();
+  if (nachher.status !== 401) throw new Error(`nach dem Sperren erwartet 401, war ${nachher.status}`);
+});
+
+Deno.test("ohne eingerichtete Anmeldung antworten die Anmeldeendpunkte mit 503", async () => {
+  const portal = neuesPortal();
+  const antwort = await portal.behandeln(offeneAnfrage("/api/anmeldung/code", { email: ADMIN }));
+  await antwort.body?.cancel();
+  if (antwort.status !== 503) throw new Error(`erwartet 503, war ${antwort.status}`);
 });

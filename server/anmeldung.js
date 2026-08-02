@@ -144,6 +144,12 @@ export function createAnmeldung(nutzerVerzeichnis, mail, sitzungsToken, {
     };
   }
 
+  // Prüft einen Sitzungsausweis. Nur durchgereicht, damit das Portal nicht zwei Bausteine
+  // kennen muss — es fragt in allen Zugangsfragen diesen einen.
+  async function tokenPruefen(token) {
+    return sitzungsToken ? await sitzungsToken.pruefen(token) : null;
+  }
+
   // --- Nutzerverwaltung, nur für den Verwalter (das Portal wacht darüber) ---
 
   async function zugelasseneAuflisten() {
@@ -169,7 +175,10 @@ export function createAnmeldung(nutzerVerzeichnis, mail, sitzungsToken, {
     return await zugelasseneAuflisten();
   }
 
-  return { codeAnfordern, codeEinloesen, zugangPruefen, istAdmin, zugelasseneAuflisten, zulassen, sperren };
+  return {
+    codeAnfordern, codeEinloesen, tokenPruefen, zugangPruefen, istAdmin,
+    zugelasseneAuflisten, zulassen, sperren,
+  };
 }
 
 // Sechs Stellen aus dem Zufallsgenerator des Betriebssystems, nicht aus Math.random(): Dessen

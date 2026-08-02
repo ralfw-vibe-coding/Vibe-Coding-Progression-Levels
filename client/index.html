@@ -685,10 +685,77 @@
     color: #FFFFFF;
   }
   .btn-primary:hover { opacity: 0.9; }
+
+  /* Anmeldeschirm. Bewusst eine Karte und kein <dialog>: Ein Dialog über einer leeren Seite
+     sieht aus, als sei etwas schiefgegangen. Hier ist die Anmeldung die Seite. */
+  .anmelde-karte {
+    max-width: 360px;
+    margin: 80px auto;
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(24, 26, 42, 0.06);
+  }
+  .anmelde-karte h1 { font-size: 20px; margin: 0 0 4px; }
+  .anmelde-karte .untertitel {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .anmelde-karte .btn { width: 100%; justify-content: center; margin-top: 4px; }
+  .anmeldung-meldung { font-size: 12px; line-height: 1.5; margin-top: 12px; min-height: 18px; }
+  .anmeldung-meldung.fehler { color: var(--red); }
+  .anmeldung-meldung.hinweis { color: var(--ink-muted); }
+  .anmelde-zurueck {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 0.5px solid var(--border);
+    cursor: pointer;
+  }
+  .anmelde-zurueck:hover { color: var(--ink); }
 </style>
 </head>
 <body>
-<main>
+
+<!-- Der Anmeldeschirm steht vor der Anwendung, nicht darin: Ohne Ausweis gibt es nichts zu
+     sehen, also wird <main> erst nach erfolgreicher Anmeldung eingeblendet. -->
+<section id="anmeldung" hidden>
+  <div class="anmelde-karte">
+    <h1>Mein Depot</h1>
+
+    <form id="form-anmeldung-adresse">
+      <p class="untertitel">Melde dich mit deiner E-Mail-Adresse an. Du bekommst einen Einmalcode zugeschickt.</p>
+      <div class="field">
+        <label for="anmeldung-email">E-Mail</label>
+        <input type="email" id="anmeldung-email" autocomplete="email" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Code anfordern</button>
+    </form>
+
+    <form id="form-anmeldung-code" hidden>
+      <p class="untertitel">Wir haben einen Code an <strong id="anmeldung-empfaenger"></strong> geschickt.</p>
+      <div class="field">
+        <label for="anmeldung-code">Code</label>
+        <!-- Bewusst type="text" und weder inputmode="numeric" noch pattern: Der zugeschickte
+             Code besteht aus sechs Ziffern, aber es gibt einen zweiten, der aus Buchstaben
+             bestehen kann. Ein Zahlenfeld sperrte genau den Weg, der gedacht ist, wenn der
+             Mailversand hakt. -->
+        <input type="text" id="anmeldung-code" autocomplete="one-time-code"
+               maxlength="64" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Anmelden</button>
+      <a class="anmelde-zurueck" id="anmeldung-zurueck">andere Adresse verwenden</a>
+    </form>
+
+    <div class="anmeldung-meldung" id="anmeldung-meldung"></div>
+  </div>
+</section>
+
+<main hidden>
 
   <div class="page-header">
     <div class="page-header-left">
@@ -889,20 +956,40 @@
      jetzt ausgeliefert, nicht geöffnet. -->
 <script type="module">
   // --- Komposition: der einzige Ort, an dem die Client-Module zusammengesteckt werden.
-  // Der API-Schlüssel steht nicht im Quelltext, sondern wird vom Server beim Ausliefern
-  // dieser Seite hineingeschrieben (siehe server/portal.js). ---
+  //
+  // Bis Stufe 12 stand hier window.__API_KEY__ — ein Schlüssel, den der Server beim Ausliefern
+  // in die Seite schrieb. Unter einer öffentlichen Adresse hieß das: Jeder Besucher bekam ihn
+  // geschenkt. Seit Stufe 13 enthält die Seite kein Geheimnis mehr; wer hereinwill, holt sich
+  // seinen Ausweis über einen Einmalcode. ---
   import { createBackendProxyProvider } from "./backendProxyProvider.js";
   import { createImExportProvider } from "./imExportProvider.js";
   import { createBody } from "./body.js";
   import { createPortal } from "./portal.js";
+  import { createAnmeldeSchirm, gespeichertesToken, tokenVergessen } from "./anmeldeSchirm.js";
   import * as domain from "./domain.js";
 
-  const backend = createBackendProxyProvider("", window.__API_KEY__);
-  const imExport = createImExportProvider();
-  const body = createBody(backend, imExport, domain);
-  const portal = createPortal(body, domain);
+  // Der Proxy entsteht vor dem Token: Man braucht ihn ja gerade, um den Code anzufordern.
+  const backend = createBackendProxyProvider("", {
+    beiAbgelaufenerSitzung: () => { tokenVergessen(); anmeldeSchirm.zeigen(); },
+  });
+  backend.tokenSetzen(gespeichertesToken());
 
-  portal.starten();
+  // Nach erfolgreicher Anmeldung neu laden statt die Anwendung von hier aus hochzufahren: Das
+  // hält diesen Weg auf eine Zeile und vermeidet einen zweiten, kaum je durchlaufenen Pfad
+  // durch die Verdrahtung der Oberfläche.
+  const anmeldeSchirm = createAnmeldeSchirm(backend, { beiErfolg: () => location.reload() });
+
+  // Die Probe, ob ein gespeichertes Token noch gilt — und zugleich die Auskunft, ob wir die
+  // Nutzerverwaltung anbieten müssen.
+  const ich = await backend.ichAbfragen().catch(() => null);
+
+  if (!ich) {
+    anmeldeSchirm.zeigen();
+  } else {
+    document.querySelector("main").hidden = false;
+    const body = createBody(backend, createImExportProvider(), domain);
+    createPortal(body, domain).starten();
+  }
 </script>
 </body>
 </html>

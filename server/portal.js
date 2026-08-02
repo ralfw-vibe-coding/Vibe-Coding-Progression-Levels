@@ -4,6 +4,13 @@
 // Frontend-Portal im Browser kennt es nur den Body, nie die Domäne oder den Event-Store.
 //
 // Es hat zwei Aufgaben: den API bereitstellen und die Dateien des Clients ausliefern.
+//
+// Seit Stufe 13 ist es außerdem der einzige Ort, an dem über Zugang entschieden wird — und es
+// kennt dafür zwei Bodies: einen für das Depot, einen für die Anmeldung. Zwei Wege führen
+// herein, und beide enden in derselben Berechtigung, weil es nur ein Depot gibt:
+//
+//   X-API-Key            für Maschinen. Ein Skript kann keinen Code aus einem Postfach holen.
+//   Authorization: Bearer für Menschen. Nach Einmalcode ausgestellt, zeitlich begrenzt.
 
 const MIME_TYPEN = {
   html: "text/html; charset=utf-8",
@@ -19,20 +26,108 @@ function json(daten, status = 200) {
   });
 }
 
-export function createPortal(body, apiKey, clientVerzeichnis) {
-  // Jede API-Anfrage weist sich mit dem Schlüssel aus — auch die aus dem Browser. Es gibt
-  // keinen Sonderweg für die eigene Oberfläche: sie ist nur einer von mehreren möglichen
-  // Clients, curl ist ein gleichberechtigter anderer.
-  function istBerechtigt(request) {
-    return request.headers.get("x-api-key") === apiKey;
+// Die einzigen Endpunkte, die ohne Ausweis erreichbar sind — man braucht sie ja gerade, um
+// einen zu bekommen. Als Liste von Paaren und nicht als Pfad-Präfix: Ein Präfix wie
+// "/api/anmeldung/" wüchse still mit, sobald jemand später einen weiteren Endpunkt darunter
+// hängt, und der wäre dann unbemerkt offen. Eine Liste zwingt zur bewussten Entscheidung.
+const OFFENE_ENDPUNKTE = [
+  ["/api/anmeldung/code", "POST"],
+  ["/api/anmeldung/einloesen", "POST"],
+];
+
+/**
+ * @param {*} body Der Depot-Body.
+ * @param {string} apiKey Maschinenzugang. Wer ihn hat, betreibt die Anwendung.
+ * @param {string} clientVerzeichnis
+ * @param {*} [anmeldung] Der zweite Body (anmeldung.js). Fehlt er, gilt nur der API-Schlüssel
+ *   und die Anmeldeendpunkte antworten 503 — so bleibt das Portal auch ohne eingerichtete
+ *   Anmeldung benutzbar, etwa in Tests, die sich für sie nicht interessieren.
+ */
+export function createPortal(body, apiKey, clientVerzeichnis, anmeldung = null) {
+  /**
+   * Der einzige Ort, an dem die beiden Wege hinein zusammenlaufen. Gibt null zurück, wenn sich
+   * niemand ausgewiesen hat.
+   *
+   * Der API-Schlüssel gilt als Verwalter: Wer ihn hat, betreibt die Anwendung. Ihm die
+   * Nutzerverwaltung zu verweigern hieße, dass sich die Liste per Skript nicht in Gang bringen
+   * ließe.
+   *
+   * Beim Token wird zusätzlich geprüft, ob die Adresse *noch* zugelassen ist — nicht nur, ob
+   * das Token echt ist. Sonst wirkte ein Entzug erst nach Ablauf, also womöglich erst in sieben
+   * Tagen; wer jemanden aussperrt, erwartet das aber jetzt.
+   */
+  async function zugangPruefen(request) {
+    if (request.headers.get("x-api-key") === apiKey) {
+      return { art: "schluessel", email: null, istAdmin: true };
+    }
+
+    const kopf = request.headers.get("authorization") ?? "";
+    if (anmeldung && kopf.startsWith("Bearer ")) {
+      const ausweis = await anmeldung.tokenPruefen(kopf.slice("Bearer ".length).trim());
+      if (ausweis && await anmeldung.zugangPruefen(ausweis.email)) {
+        return { art: "token", email: ausweis.email, istAdmin: anmeldung.istAdmin(ausweis.email) };
+      }
+    }
+    return null;
+  }
+
+  async function anmeldungBehandeln(request, pfad) {
+    if (!anmeldung) {
+      return json({ fehler: "Für diesen Server ist keine Anmeldung eingerichtet." }, 503);
+    }
+    const daten = await request.json().catch(() => ({}));
+
+    if (pfad === "/api/anmeldung/code") {
+      const ergebnis = await anmeldung.codeAnfordern(daten.email);
+      // 404 und nicht 401: Es fehlt nicht der Ausweis, es gibt die Adresse hier nicht.
+      return ergebnis.ok ? json({ versendet: true, gueltigBis: ergebnis.gueltigBis }) : json({ fehler: ergebnis.grund }, 404);
+    }
+
+    const ergebnis = await anmeldung.codeEinloesen(daten.email, daten.code);
+    return ergebnis.ok
+      ? json({ token: ergebnis.token, email: ergebnis.email, istAdmin: ergebnis.istAdmin })
+      : json({ fehler: ergebnis.grund }, 401);
+  }
+
+  async function nutzerBehandeln(request, pfad, methode) {
+    try {
+      if (methode === "GET") return json(await anmeldung.zugelasseneAuflisten());
+      if (methode === "POST") return json(await anmeldung.zulassen((await request.json()).email));
+      if (methode === "DELETE") {
+        const email = decodeURIComponent(pfad.slice("/api/nutzer/".length));
+        return json(await anmeldung.sperren(email));
+      }
+    } catch (f) {
+      return json({ fehler: f.message }, 400);
+    }
+    return json({ fehler: `Unbekannter Endpunkt: ${methode} ${pfad}` }, 404);
   }
 
   async function apiBehandeln(request, pfad) {
-    if (!istBerechtigt(request)) {
-      return json({ fehler: "Ungültiger oder fehlender API-Schlüssel (Header: X-API-Key)." }, 401);
+    const methode = request.method;
+
+    if (OFFENE_ENDPUNKTE.some(([p, m]) => p === pfad && m === methode)) {
+      return await anmeldungBehandeln(request, pfad);
     }
 
-    const methode = request.method;
+    const zugang = await zugangPruefen(request);
+    if (!zugang) {
+      return json({ fehler: "Nicht angemeldet. Bitte melde dich an oder weise dich mit dem API-Schlüssel aus (Header: X-API-Key)." }, 401);
+    }
+
+    // Wer sich ausgewiesen hat, darf noch lange nicht alles: 403 heißt „erkannt, aber nicht
+    // befugt" — im Unterschied zum 401 oben, das „nicht erkannt" bedeutet.
+    if (pfad === "/api/nutzer" || pfad.startsWith("/api/nutzer/")) {
+      if (!zugang.istAdmin) return json({ fehler: "Das darf nur der Verwalter." }, 403);
+      if (!anmeldung) return json({ fehler: "Für diesen Server ist keine Anmeldung eingerichtet." }, 503);
+      return await nutzerBehandeln(request, pfad, methode);
+    }
+
+    // Damit die Oberfläche weiß, wen sie vor sich hat — und ob sie die Nutzerverwaltung
+    // anbieten soll. Zugleich beim Start die Probe, ob ein gespeichertes Token noch gilt.
+    if (pfad === "/api/ich" && methode === "GET") {
+      return json({ email: zugang.email, istAdmin: zugang.istAdmin, art: zugang.art });
+    }
 
     if (pfad === "/api/depot" && methode === "GET") {
       return json(await body.depotAbfragen());
@@ -95,16 +190,16 @@ export function createPortal(body, apiKey, clientVerzeichnis) {
     return json({ fehler: `Unbekannter Endpunkt: ${methode} ${pfad}` }, 404);
   }
 
-  // Der Browser braucht den Schlüssel, um den API benutzen zu dürfen — er bekommt ihn beim
-  // Ausliefern der Seite mitgegeben. Damit bleibt der Client frei von jeder fest
-  // eingebauten Konfiguration: er erfährt zur Laufzeit, womit er sich auszuweisen hat.
+  // Die Seite geht unverändert raus — ohne Geheimnis darin. Bis Stufe 12 wurde hier der
+  // API-Schlüssel hineingeschrieben, damit der Browser sich ausweisen kann. Solange die
+  // Anwendung nur lokal lief, fiel das nicht auf; unter einer öffentlichen Adresse verschenkte
+  // sie damit an jeden Besucher vollen Zugriff auf das Depot — im Seitenquelltext, im Klartext.
+  //
+  // Was ausgeliefert wird, ist deshalb nur noch eine Hülle. Wer hereinwill, holt sich seinen
+  // Ausweis selbst: E-Mail eingeben, Code aus dem Postfach, Token.
   async function indexAusliefern() {
     const html = await Deno.readTextFile(`${clientVerzeichnis}/index.html`);
-    const mitSchluessel = html.replace(
-      "</head>",
-      `<script>window.__API_KEY__ = ${JSON.stringify(apiKey)};</script>\n</head>`,
-    );
-    return new Response(mitSchluessel, { headers: { "content-type": MIME_TYPEN.html } });
+    return new Response(html, { headers: { "content-type": MIME_TYPEN.html } });
   }
 
   async function dateiAusliefern(pfad) {
