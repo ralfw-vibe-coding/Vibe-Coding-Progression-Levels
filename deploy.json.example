@@ -1,0 +1,22 @@
+{
+  "_hinweis": [
+    "Vorlage für deploy.json — die eigene Fassung liegt nicht im Repository (siehe .gitignore),",
+    "weil org und app das Deployment einer bestimmten Person bezeichnen und in dessen",
+    "öffentlicher Adresse auftauchen: https://<app>.<org>.deno.net",
+    "",
+    "Benutzt wird die Datei ausdrücklich: deno deploy --config deploy.json --prod",
+    "Ohne --config schreibt die Deploy-CLI org und app von sich aus in deno.json zurück —",
+    "genau das soll diese Trennung verhindern.",
+    "",
+    "Der runtime-Block steht hier mit, weil --config die gesamte Konfiguration ersetzt:",
+    "Was die Plattform starten soll, muss also in derselben Datei stehen wie das Ziel."
+  ],
+  "deploy": {
+    "org": "meine-org",
+    "app": "mein-depot",
+    "runtime": {
+      "mode": "dynamic",
+      "entrypoint": "server/main.js"
+    }
+  }
+}

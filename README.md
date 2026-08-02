@@ -1,7 +1,10 @@
 # Mein Depot
 
-Voraussetzung: [Deno](https://deno.com) installiert. Deno ist ab Stufe 7 die Laufzeitumgebung der
-ganzen Anwendung, nicht mehr nur der Tests.
+Läuft ab Stufe 12 im Web — bei Deno Deploy unter einer Adresse der Form
+`https://<app>.<org>.deno.net` (siehe `Verlauf/Stufe 12.md`).
+
+Voraussetzung fürs lokale Arbeiten: [Deno](https://deno.com) installiert. Deno ist ab Stufe 7 die
+Laufzeitumgebung der ganzen Anwendung, nicht mehr nur der Tests.
 
 ## App starten
 
@@ -10,7 +13,26 @@ deno task serve
 ```
 
 Dann `http://localhost:8000` im Browser öffnen. Beim ersten Start wird ein API-Schlüssel erzeugt
-und auf der Konsole ausgegeben; er bleibt über Neustarts hinweg derselbe.
+und auf der Konsole ausgegeben; er bleibt über Neustarts hinweg derselbe. Ist `BACKEND_API_KEY`
+in `.env` gesetzt, gilt stattdessen dieser Wert — so bekommt die deployte Anwendung einen
+Schlüssel, der Neustarts übersteht, ohne eine Datei zu brauchen.
+
+## Ins Web deployen
+
+```bash
+deno deploy --prod
+```
+
+Ziel, Entrypoint und Runtime-Modus stehen im `deploy`-Block von `deno.json`. Die Zugangsdaten
+liegen nicht im Repository, sondern einmalig bei der Plattform:
+
+```bash
+deno deploy env add DATABASE_URL "postgres://…" --secret
+deno deploy env list        # Werte bleiben verborgen (value: null)
+```
+
+Ohne `--secret` wäre der Wert später wieder auslesbar. Gesetzt sind so `DATABASE_URL`,
+`BACKEND_API_KEY`, `TWELVE_DATA_API_KEY` und `FINNHUB_API_KEY`.
 
 ## App über den API benutzen
 

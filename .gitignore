@@ -2,3 +2,5 @@ requirements
 coverage
 server/data
 .env
+deploy.json
+*.feedback.json
