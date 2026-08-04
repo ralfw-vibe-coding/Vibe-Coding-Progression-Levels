@@ -717,6 +717,31 @@
     cursor: pointer;
   }
   .anmelde-zurueck:hover { color: var(--ink); }
+
+  /* Nutzerverwaltung. Der Dialog ist etwas breiter als die anderen: Hier stehen
+     E-Mail-Adressen, und die brechen sonst um. */
+  #dialog-nutzer { width: 400px; }
+  .nutzer-liste { margin: 4px 0 16px; }
+  .nutzer-zeile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .nutzer-zeile:last-child { border-bottom: none; }
+  .nutzer-email { font-size: 13px; }
+  .nutzer-entfernen {
+    border: none;
+    background: none;
+    padding: 2px 4px;
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--ink-faint);
+    cursor: pointer;
+  }
+  .nutzer-entfernen:hover { color: var(--red); }
 </style>
 </head>
 <body>
@@ -774,6 +799,10 @@
       </button>
       <button type="button" class="add-btn" id="btn-export" aria-label="Ereignisse in Datei speichern" title="In Datei speichern">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      </button>
+      <!-- Nur für den Verwalter; die Komposition blendet ihn ein, wenn /api/ich das sagt. -->
+      <button type="button" class="add-btn" id="btn-nutzer" aria-label="Zugang verwalten" title="Zugang verwalten" hidden>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </button>
       <div class="meta" id="heute-anzeige"></div>
     </div>
@@ -951,6 +980,29 @@
   </form>
 </dialog>
 
+<dialog id="dialog-nutzer">
+  <h2>Zugang verwalten</h2>
+  <div class="field-info">
+    Wer hier steht, kann sich mit seiner E-Mail-Adresse anmelden und sieht dasselbe Depot.
+    Als Verwalter (<strong id="nutzer-verwalter"></strong>) stehst du nicht in der Liste —
+    dein Zugang kommt aus der Konfiguration des Servers.
+  </div>
+
+  <div class="nutzer-liste" id="nutzer-liste"></div>
+
+  <form id="form-nutzer">
+    <div class="field">
+      <label for="nutzer-email">Weitere Adresse freischalten</label>
+      <input type="email" id="nutzer-email" autocomplete="off" placeholder="name@beispiel.de">
+    </div>
+    <div class="feld-hinweis" id="nutzer-meldung"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" data-close>Schließen</button>
+      <button type="submit" class="btn btn-primary">Freischalten</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Module: echte ES-Module. Der Grund für das frühere klassische <script src> — die Seite
      musste per Doppelklick unter file:// laufen — ist mit dem Server entfallen. Die App wird
      jetzt ausgeliefert, nicht geöffnet. -->
@@ -966,6 +1018,7 @@
   import { createBody } from "./body.js";
   import { createPortal } from "./portal.js";
   import { createAnmeldeSchirm, gespeichertesToken, tokenVergessen } from "./anmeldeSchirm.js";
+  import { createNutzerverwaltung } from "./nutzerverwaltung.js";
   import * as domain from "./domain.js";
 
   // Der Proxy entsteht vor dem Token: Man braucht ihn ja gerade, um den Code anzufordern.
@@ -987,6 +1040,17 @@
     anmeldeSchirm.zeigen();
   } else {
     document.querySelector("main").hidden = false;
+
+    // Die Nutzerverwaltung gibt es nur für den Verwalter. Der Knopf ist die bequeme Fassade —
+    // die Regel selbst steht im Portal, das jede Anfrage prüft. Wer ihn per Werkzeug umgeht,
+    // bekommt 403.
+    if (ich.istAdmin) {
+      const verwaltung = createNutzerverwaltung(backend, { eigeneEmail: ich.email });
+      const knopf = document.getElementById("btn-nutzer");
+      knopf.hidden = false;
+      knopf.addEventListener("click", () => verwaltung.oeffnen());
+    }
+
     const body = createBody(backend, createImExportProvider(), domain);
     createPortal(body, domain).starten();
   }
