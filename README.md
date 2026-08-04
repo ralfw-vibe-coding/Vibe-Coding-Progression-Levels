@@ -12,27 +12,52 @@ Laufzeitumgebung der ganzen Anwendung, nicht mehr nur der Tests.
 deno task serve
 ```
 
-Dann `http://localhost:8000` im Browser öffnen. Beim ersten Start wird ein API-Schlüssel erzeugt
-und auf der Konsole ausgegeben; er bleibt über Neustarts hinweg derselbe. Ist `BACKEND_API_KEY`
-in `.env` gesetzt, gilt stattdessen dieser Wert — so bekommt die deployte Anwendung einen
-Schlüssel, der Neustarts übersteht, ohne eine Datei zu brauchen.
+Dann `http://localhost:8000` im Browser öffnen.
+
+## Anmelden
+
+Seit Stufe 13 verlangt die Anwendung einen Ausweis. Es gibt zwei Wege hinein, und beide führen
+zum selben Depot — es gibt ja nur eines:
+
+**Für Menschen: Einmalcode per E-Mail.** Man gibt seine Adresse ein und bekommt einen
+sechsstelligen Code zugeschickt, der zehn Minuten und nur einmal gilt. Danach hält ein Token die
+Sitzung sieben Tage lang offen.
+
+Anmelden darf nur, wer freigeschaltet ist. Die Liste pflegt der Verwalter (`ADMIN_EMAIL`) über den
+Personen-Knopf in der Kopfzeile — er selbst steht nicht darin, sein Zugang kommt aus der
+Konfiguration. Wer jemanden entfernt, sperrt ihn sofort aus: Auch ein noch gültiges Token verliert
+augenblicklich seine Wirkung.
+
+`AUTH_SECRET_OTP` ist ein Code, der immer gilt — der Weg hinein, wenn der Mailversand hakt. Er ist
+kein Bequemlichkeitscode, sondern ein zweiter Generalschlüssel: lang und zufällig wählen, nie in
+einer Nachricht weitergeben. Er hebelt die Zugangsliste **nicht** aus.
+
+Läuft der Server ohne `RESEND_API_KEY`, landen die Codes auf der Konsole — praktisch beim
+Entwickeln. Deployt gibt es dann keine Anmeldung per Code, weil Anmeldecodes sonst im Protokoll
+stünden.
+
+**Für Maschinen: der API-Schlüssel.** Ein Skript kann keinen Code aus einem Postfach holen, also
+bleibt `BACKEND_API_KEY` bestehen (siehe unten). Wer ihn hat, gilt als Verwalter.
 
 ## Ins Web deployen
 
 ```bash
-deno deploy --prod
+deno task deploy
 ```
 
-Ziel, Entrypoint und Runtime-Modus stehen im `deploy`-Block von `deno.json`. Die Zugangsdaten
-liegen nicht im Repository, sondern einmalig bei der Plattform:
+Ziel, Entrypoint und Runtime-Modus stehen in `deploy.json` (Vorlage: `deploy.json.example`). Die
+Zugangsdaten liegen nicht im Repository, sondern einmalig bei der Plattform:
 
 ```bash
 deno deploy env add DATABASE_URL "postgres://…" --secret
 deno deploy env list        # Werte bleiben verborgen (value: null)
 ```
 
-Ohne `--secret` wäre der Wert später wieder auslesbar. Gesetzt sind so `DATABASE_URL`,
-`BACKEND_API_KEY`, `TWELVE_DATA_API_KEY` und `FINNHUB_API_KEY`.
+Ohne `--secret` wäre der Wert später wieder auslesbar. Zu setzen sind `DATABASE_URL`,
+`BACKEND_API_KEY`, `ADMIN_EMAIL`, `AUTH_SESSION_SECRET`, `JWT_TTL_SECONDS`, `RESEND_API_KEY`,
+`AUTH_FROM_EMAIL`, `AUTH_SECRET_OTP`, `TWELVE_DATA_API_KEY` und `FINNHUB_API_KEY`.
+
+Immer nur **einen** Deploy anstoßen und durchlaufen lassen — ein zweiter bricht den ersten ab.
 
 ## App über den API benutzen
 
@@ -58,6 +83,19 @@ curl -X POST -H "X-API-Key: DEIN-SCHLUESSEL" -H "Content-Type: application/json"
 | Verlauf einer Position | `GET /api/verlauf/{wertpapierId}?broker={broker}` |
 | Alle Ereignisse auslesen | `GET /api/events` |
 | Alle Ereignisse ersetzen | `PUT /api/events` |
+| Wer bin ich? | `GET /api/ich` |
+| Zugangsliste lesen / ergänzen | `GET` bzw. `POST /api/nutzer` |
+| Zugang entziehen | `DELETE /api/nutzer/{email}` |
+
+Statt des Schlüssels geht auch ein Sitzungstoken: `-H "Authorization: Bearer DEIN-TOKEN"`. Die
+beiden Anmeldeendpunkte brauchen naturgemäß keinen Ausweis:
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"email":"du@beispiel.de"}' \
+  http://localhost:8000/api/anmeldung/code
+curl -X POST -H "Content-Type: application/json" -d '{"email":"du@beispiel.de","code":"123456"}' \
+  http://localhost:8000/api/anmeldung/einloesen
+```
 
 ## Tests ausführen
 
