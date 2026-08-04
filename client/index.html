@@ -15,6 +15,10 @@
     --red: #DC2626;
   }
   * { box-sizing: border-box; }
+  /* Der Browser blendet [hidden] von sich aus über display:none aus — aber nur, solange keine
+     eigene Regel ein display setzt. .add-btn tut genau das, und ein versteckter Knopf blieb
+     dadurch sichtbar. Diese Zeile stellt sicher, dass "hidden" überall bedeutet, was es sagt. */
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     padding: 40px 20px;
@@ -733,11 +737,12 @@
   .nutzer-zeile:last-child { border-bottom: none; }
   .nutzer-email { font-size: 13px; }
   .nutzer-entfernen {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: none;
-    padding: 2px 4px;
-    font-size: 11px;
-    font-family: inherit;
+    padding: 4px;
     color: var(--ink-faint);
     cursor: pointer;
   }
@@ -765,11 +770,13 @@
       <p class="untertitel">Wir haben einen Code an <strong id="anmeldung-empfaenger"></strong> geschickt.</p>
       <div class="field">
         <label for="anmeldung-code">Code</label>
-        <!-- Bewusst type="text" und weder inputmode="numeric" noch pattern: Der zugeschickte
-             Code besteht aus sechs Ziffern, aber es gibt einen zweiten, der aus Buchstaben
-             bestehen kann. Ein Zahlenfeld sperrte genau den Weg, der gedacht ist, wenn der
-             Mailversand hakt. -->
-        <input type="text" id="anmeldung-code" autocomplete="one-time-code"
+        <!-- Maskiert, weil hier nicht nur der zugeschickte Code eingegeben wird: Der
+             Dauer-Einmalcode ist ein Generalschlüssel, und den tippt man nicht offen sichtbar
+             in ein Feld, wenn jemand danebensteht.
+             Bewusst kein inputmode="numeric" und kein pattern — der zugeschickte Code besteht
+             aus sechs Ziffern, der Dauercode aus Buchstaben. Ein Zahlenfeld sperrte genau den
+             Weg, der gedacht ist, wenn der Mailversand hakt. -->
+        <input type="password" id="anmeldung-code" autocomplete="one-time-code"
                maxlength="64" autocapitalize="off" autocorrect="off" spellcheck="false" required>
       </div>
       <button type="submit" class="btn btn-primary">Anmelden</button>
@@ -803,6 +810,9 @@
       <!-- Nur für den Verwalter; die Komposition blendet ihn ein, wenn /api/ich das sagt. -->
       <button type="button" class="add-btn" id="btn-nutzer" aria-label="Zugang verwalten" title="Zugang verwalten" hidden>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
+      <button type="button" class="add-btn" id="btn-abmelden" aria-label="Abmelden" title="Abmelden">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
       </button>
       <div class="meta" id="heute-anzeige"></div>
     </div>
@@ -1050,6 +1060,15 @@
       knopf.hidden = false;
       knopf.addEventListener("click", () => verwaltung.oeffnen());
     }
+
+    // Abmelden heißt: das Token wegwerfen und neu laden. Serverseitig gibt es nichts
+    // zurückzunehmen — ein signiertes Token lebt nur im Browser, der es hat. Wer eine Sitzung
+    // wirklich beenden will, statt sie nur zu vergessen, entzieht den Zugang in der Verwaltung;
+    // das wirkt sofort und für alle Geräte.
+    document.getElementById("btn-abmelden").addEventListener("click", () => {
+      tokenVergessen();
+      location.reload();
+    });
 
     const body = createBody(backend, createImExportProvider(), domain);
     createPortal(body, domain).starten();
