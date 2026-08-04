@@ -323,6 +323,14 @@
     color: var(--ink-faint);
     white-space: nowrap;
   }
+  /* Wer gerade angemeldet ist. Steht direkt vor dem Abmelden-Knopf, damit beides zusammen
+     gelesen wird: "das bist du — und hier gehst du wieder raus". */
+  .angemeldet-als {
+    font-size: 12px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+    margin-left: 4px;
+  }
   @keyframes dreht { to { transform: rotate(360deg); } }
   .add-btn.laeuft svg { animation: dreht 0.9s linear infinite; }
   /* Während des Abrufs pulsiert die Karte leicht — man sieht, dass etwas im Gange ist,
@@ -811,6 +819,7 @@
       <button type="button" class="add-btn" id="btn-nutzer" aria-label="Zugang verwalten" title="Zugang verwalten" hidden>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </button>
+      <span class="angemeldet-als" id="angemeldet-als"></span>
       <button type="button" class="add-btn" id="btn-abmelden" aria-label="Abmelden" title="Abmelden">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
       </button>
@@ -1050,6 +1059,9 @@
     anmeldeSchirm.zeigen();
   } else {
     document.querySelector("main").hidden = false;
+    // Beim Zugang per API-Schlüssel gibt es keine Adresse — dann bleibt die Anzeige leer,
+    // statt etwas Erfundenes zu behaupten.
+    document.getElementById("angemeldet-als").textContent = ich.email ?? "";
 
     // Die Nutzerverwaltung gibt es nur für den Verwalter. Der Knopf ist die bequeme Fassade —
     // die Regel selbst steht im Portal, das jede Anfrage prüft. Wer ihn per Werkzeug umgeht,
