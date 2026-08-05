@@ -49,6 +49,14 @@
     font-size: 13px;
     color: var(--ink-faint);
   }
+  /* Die Version steht bewusst unauffällig ganz außen: Man sucht sie, wenn man sie braucht,
+     und übersieht sie sonst. */
+  .page-header .version {
+    font-size: 11px;
+    color: var(--ink-faint);
+    opacity: 0.65;
+    letter-spacing: 0.02em;
+  }
   .hero {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -824,6 +832,7 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
       </button>
       <div class="meta" id="heute-anzeige"></div>
+      <span class="version" id="version-anzeige"></span>
     </div>
   </div>
 

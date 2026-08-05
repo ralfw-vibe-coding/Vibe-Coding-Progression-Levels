@@ -4,3 +4,4 @@ server/data
 .env
 deploy.json
 *.feedback.json
+.claude

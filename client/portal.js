@@ -5,6 +5,8 @@
 //
 // Was hier steht, ist Darstellung: Formatierung, Markup, Balkenlängen, Farben. Was gerechnet
 // wird, kommt aus der Domäne; was erfragt wird, aus dem Body.
+import { VERSION } from "./version.js";
+
 export function createPortal(body, domain) {
   const TYP_KLASSE = { "Zertifikat": "zert", "Fonds": "fonds", "ETF": "etf", "Aktie": "aktie" };
   const TYP_FARBE = { Aktie: "#DB2777", ETF: "#2563EB", Zertifikat: "#D97706", Fonds: "#7C3AED" };
@@ -370,6 +372,7 @@ export function createPortal(body, domain) {
 
   function verdrahten() {
     document.getElementById("heute-anzeige").textContent = fmtDatum(HEUTE);
+    document.getElementById("version-anzeige").textContent = `v${VERSION}`;
     window.addEventListener("hashchange", route);
 
     // --- Im-/Export ---
