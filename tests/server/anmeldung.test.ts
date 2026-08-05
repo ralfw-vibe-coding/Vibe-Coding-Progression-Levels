@@ -3,7 +3,7 @@ import { createNutzerVerzeichnis } from "../../server/nutzerVerzeichnis.js";
 import { createSimulierterMailProvider } from "../../server/resendMailProvider.js";
 import { createSitzungsToken } from "../../server/sitzungsToken.js";
 
-const GEHEIMNIS = "u5Hmt2sXhroxzSp3Vl5IuB5XDpQdgd3bgzSlsL3q4dM=";
+const GEHEIMNIS = "dGVzdGdlaGVpbW5pcy1udXItZnVlci10ZXN0cy0zMmI=";
 const ADMIN = "chef@example.com";
 
 async function neueAnmeldung({ zugelassene = [], dauerOtp = null, uhr = { jetzt: Date.now() } } = {} as any) {
@@ -130,32 +130,32 @@ Deno.test("ein neu angeforderter Code beginnt wieder bei null Versuchen", async 
 
 // Der Weg hinein, wenn der Mailversand hakt.
 Deno.test("der Dauer-Einmalcode wirkt auch ohne angeforderten Code", async () => {
-  const { anmeldung } = await neueAnmeldung({ dauerOtp: "hibiskus" });
-  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "hibiskus");
+  const { anmeldung } = await neueAnmeldung({ dauerOtp: "dauer-otp-nur-im-test" });
+  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "dauer-otp-nur-im-test");
 
   if (!ergebnis.ok) throw new Error(`der Dauercode muss ohne Anforderung wirken, war: ${ergebnis.grund}`);
 });
 
 // Er ist ein Generalschlüssel, aber kein Freifahrtschein an der Liste vorbei.
 Deno.test("der Dauer-Einmalcode wirkt nicht für eine nicht zugelassene Adresse", async () => {
-  const { anmeldung } = await neueAnmeldung({ dauerOtp: "hibiskus" });
-  const ergebnis = await anmeldung.codeEinloesen("fremd@example.com", "hibiskus");
+  const { anmeldung } = await neueAnmeldung({ dauerOtp: "dauer-otp-nur-im-test" });
+  const ergebnis = await anmeldung.codeEinloesen("fremd@example.com", "dauer-otp-nur-im-test");
 
   if (ergebnis.ok) throw new Error("der Dauercode darf die Zugangsliste nicht aushebeln");
 });
 
 Deno.test("auch der Dauer-Einmalcode unterliegt der Versuchsgrenze", async () => {
   // Ohne Satz im Verzeichnis hinge an diesem Weg kein Zähler — er wäre unbegrenzt ratbar.
-  const { anmeldung } = await neueAnmeldung({ dauerOtp: "hibiskus" });
+  const { anmeldung } = await neueAnmeldung({ dauerOtp: "dauer-otp-nur-im-test" });
   for (let i = 0; i < 5; i++) await anmeldung.codeEinloesen(ADMIN, "falsch");
 
-  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "hibiskus");
+  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "dauer-otp-nur-im-test");
   if (ergebnis.ok) throw new Error("nach zu vielen Versuchen darf auch der Dauercode nicht mehr wirken");
 });
 
 Deno.test("ohne Dauer-Einmalcode gilt nur der erzeugte", async () => {
   const { anmeldung } = await neueAnmeldung();
-  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "hibiskus");
+  const ergebnis = await anmeldung.codeEinloesen(ADMIN, "dauer-otp-nur-im-test");
   if (ergebnis.ok) throw new Error("ohne konfigurierten Dauercode darf nichts durchkommen");
 });
 

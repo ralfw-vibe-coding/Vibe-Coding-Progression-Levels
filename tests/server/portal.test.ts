@@ -152,7 +152,7 @@ Deno.test("Client-Dateien werden ausgeliefert, aber nichts außerhalb des Verzei
 // --- Anmeldung, Token und Berechtigung ------------------------------------------------------
 
 const ADMIN = "chef@example.com";
-const GEHEIMNIS = "u5Hmt2sXhroxzSp3Vl5IuB5XDpQdgd3bgzSlsL3q4dM=";
+const GEHEIMNIS = "dGVzdGdlaGVpbW5pcy1udXItZnVlci10ZXN0cy0zMmI=";
 
 async function portalMitAnmeldung({ zugelassene = [] as string[] } = {}) {
   const verzeichnis = createNutzerVerzeichnis(zugelassene);

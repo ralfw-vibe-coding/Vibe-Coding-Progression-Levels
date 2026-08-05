@@ -1,6 +1,9 @@
 import { createSitzungsToken } from "../../server/sitzungsToken.js";
 
-const GEHEIMNIS = "u5Hmt2sXhroxzSp3Vl5IuB5XDpQdgd3bgzSlsL3q4dM=";
+// Testdaten sind erfunden — niemals Werte aus .env hierher kopieren. Tests liegen im Repository,
+// das Repository liegt öffentlich auf GitHub: Was hier steht, steht damit im Netz. Genau das ist
+// einmal passiert (siehe Verlauf/Stufe 14.md).
+const GEHEIMNIS = "dGVzdGdlaGVpbW5pcy1udXItZnVlci10ZXN0cy0zMmI=";
 const ANDERES_GEHEIMNIS = "Zm9vYmFyYmF6cXV1eGZvb2JhcmJhenF1dXhmb28xMjM0NTY=";
 
 const nachBase64Url = (o: unknown) =>
