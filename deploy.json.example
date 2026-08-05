@@ -9,7 +9,12 @@
     "genau das soll diese Trennung verhindern.",
     "",
     "Der runtime-Block steht hier mit, weil --config die gesamte Konfiguration ersetzt:",
-    "Was die Plattform starten soll, muss also in derselben Datei stehen wie das Ziel."
+    "Was die Plattform starten soll, muss also in derselben Datei stehen wie das Ziel.",
+    "",
+    "Derselbe runtime-Block steht seit Stufe 14 auch in deno.json — und das mit Absicht:",
+    "Beim Deploy aus GitHub baut die Plattform aus dem Repository, und diese Datei hier",
+    "liegt nicht darin. Was der Cloud-Build wissen muss, muss also im Repository stehen;",
+    "org und app bleiben davon unberührt, die kennt die Plattform aus der Verknüpfung."
   ],
   "deploy": {
     "org": "meine-org",
