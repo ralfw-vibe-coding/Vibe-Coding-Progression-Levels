@@ -1,13 +1,79 @@
 #!/usr/bin/env bash
 #
-# Läuft vor jedem Commit und bricht ihn ab, wenn die Testsuite nicht durchläuft. Ein rotes
-# Ergebnis ist dann ein nicht stattgefundener Commit statt eines defekten in der Historie.
+# Läuft vor jedem Commit und bricht ihn ab, wenn ein Geheimnis mitgehen würde oder die
+# Testsuite nicht durchläuft. Beides ist dann ein nicht stattgefundener Commit statt eines
+# schädlichen in der Historie.
 #
 # Aktiv wird dieser Hook erst nach einer einmaligen Einrichtung — Git kennt .githooks/ von
 # sich aus nicht, siehe README.md.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+# --- Erste Schranke: keine Geheimnisse ------------------------------------------------------
+#
+# Das Repository liegt öffentlich auf GitHub, und seit Stufe 14 baut die Plattform direkt
+# daraus. Was hier hineinrutscht, steht damit im Netz. Genau das ist passiert: Zwei Werte aus
+# .env lagen als Testdaten im Klartext in tests/server/ (siehe Verlauf/Stufe 14.md). Ein
+# Geheimnis wieder aus der Historie zu bekommen, geht nicht — man kann es nur noch austauschen.
+#
+# Geprüft wird gegen die eigenen .env-Werte, nicht gegen Muster wie "sieht aus wie ein
+# Schlüssel". Das findet genau den Fehler, um den es geht — einen echten Wert, kopiert —, und
+# es meldet nie etwas Falsches. Der Preis: Ein Geheimnis, das nicht in .env steht, sieht der
+# Hook auch nicht.
+#
+# Zwei Sorten Werte bleiben außen vor, sonst schlüge die Prüfung ständig grundlos an: reine
+# Zahlen (JWT_TTL_SECONDS=604800 stünde sonst gegen jede Zeitangabe im Code) und alles unter
+# sechs Zeichen.
+
+# .env selbst gehört nie in einen Commit. Sie steht zwar in .gitignore, aber 'git add -f'
+# hebelt das aus — und dann läge alles auf einmal offen.
+if git diff --cached --name-only | grep -qx '\.env'; then
+  echo "pre-commit: .env ist zum Commit vorgemerkt — abgebrochen." >&2
+  exit 1
+fi
+
+if [ -f .env ]; then
+  namen=()
+  werte=()
+  # Bewusst zeilenweise gelesen statt 'source': Ein unquotierter Wert mit spitzen Klammern hat
+  # dieses Projekt schon einmal Zeit gekostet, weil die Shell ihn als Umleitung las.
+  while IFS= read -r zeile || [ -n "$zeile" ]; do
+    case "$zeile" in ''|'#'*) continue ;; *=*) ;; *) continue ;; esac
+    wert=${zeile#*=}
+    wert=${wert%\"}
+    wert=${wert#\"}
+    [ ${#wert} -ge 6 ] || continue
+    case "$wert" in *[!0-9]*) ;; *) continue ;; esac
+    namen+=("${zeile%%=*}")
+    werte+=("$wert")
+  done < .env
+
+  gefunden=0
+  if [ ${#werte[@]} -gt 0 ]; then
+    while IFS= read -r datei; do
+      [ -n "$datei" ] || continue
+      inhalt=$(git show ":$datei" 2>/dev/null || true)
+      [ -n "$inhalt" ] || continue
+      for i in "${!werte[@]}"; do
+        if grep -qF -- "${werte[$i]}" <<< "$inhalt"; then
+          # Der Name reicht zum Finden. Der Wert darf hier nicht stehen: Hook-Ausgaben landen
+          # in Terminalprotokollen und CI-Logs — dieselbe Falle eine Ebene höher.
+          echo "pre-commit: Der Wert von ${namen[$i]} aus .env steht in $datei." >&2
+          gefunden=1
+        fi
+      done
+    done < <(git diff --cached --name-only --diff-filter=ACM)
+  fi
+
+  if [ "$gefunden" -eq 1 ]; then
+    echo "" >&2
+    echo "pre-commit: Geheimnisse gehören nicht ins Repository — Commit abgebrochen." >&2
+    echo "Für Tests erfundene Werte verwenden, nie aus .env kopieren." >&2
+    exit 1
+  fi
+fi
+
+# --- Zweite Schranke: grüne Tests -----------------------------------------------------------
 echo "pre-commit: Testsuite läuft …"
 if ! deno task test; then
   echo "" >&2

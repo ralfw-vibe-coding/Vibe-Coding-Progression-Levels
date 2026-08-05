@@ -115,10 +115,21 @@ deno task coverage
 deno task hooks-einrichten
 ```
 
-Danach läuft die Testsuite automatisch vor jedem `git commit` — ein rotes Ergebnis verhindert
-den Commit, statt es in der Historie zu verstecken. Der Hook liegt unter `.githooks/` im
-Repository (Git kennt diesen Pfad erst nach der Einrichtung, siehe `Verlauf/Stufe 10.md`) und
-lässt sich im Notfall mit `git commit --no-verify` umgehen.
+Danach prüft Git vor jedem `git commit` zweierlei — beides verhindert den Commit, statt das
+Problem in der Historie zu verstecken:
+
+1. **Kein Geheimnis geht mit.** Der Hook vergleicht die vorgemerkten Dateien mit den Werten aus
+   der eigenen `.env`; taucht einer davon auf, bricht er ab und nennt die Variable (nie den
+   Wert). Auch `.env` selbst lässt sich so nicht versehentlich committen. Das ist keine
+   Mustererkennung, sondern ein Abgleich mit den tatsächlichen Werten: Es findet genau den
+   Fehler, um den es geht — einen echten Wert, in eine Testdatei kopiert —, sieht aber nichts,
+   was nicht in `.env` steht.
+2. **Die Testsuite läuft durch.**
+
+Der Hook liegt unter `.githooks/` im Repository (Git kennt diesen Pfad erst nach der
+Einrichtung, siehe `Verlauf/Stufe 10.md`) und lässt sich im Notfall mit `git commit --no-verify`
+umgehen. Er wirkt nur auf dem Rechner, auf dem er eingerichtet wurde — ein frischer Klon ist
+ungeschützt, bis `deno task hooks-einrichten` gelaufen ist.
 
 ## Aufbau
 
